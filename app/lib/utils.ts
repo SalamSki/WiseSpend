@@ -29,7 +29,7 @@ export const verificationEmailHTML = (username: string, otp: string) => `
       padding: 0 25px;
       '>
       <h1 style='color: white;'>Hello ${username}</h1>
-      <h5 style='color: white;'>Welcome To Account Template.</h5>
+      <h5 style='color: white;'>Welcome To WiseSpend.</h5>
       <h5 style='color: white;'>Here is your verification code:</h5>
 
       <div style='

@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Account Template",
-  description: "Account based project template",
+  title: "WiseSpend",
+  description: "Spend your money wisely.",
   metadataBase: new URL(process.env.HOST || ""),
   manifest: new URL(`${process.env.HOST || ""}/manifest.json`),
 };

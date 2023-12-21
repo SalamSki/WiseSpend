@@ -71,11 +71,11 @@ export async function sendVerificationMail(user_id: string) {
     });
 
     transporter.sendMail({
-      from: `"Account Template" <${process.env.SMPT_LOGIN}>`,
+      from: `"WiseSpend" <${process.env.SMPT_LOGIN}>`,
       to: userById.email,
-      subject: `Account Template | ${otp}`,
+      subject: `WiseSpend | ${otp}`,
       text: `Hello ${userById.username}
-      \nWelcome To Account Template.
+      \nWelcome To WiseSpend.
       \nHere is your verification code:
       \n${otp}
       `,
@@ -120,11 +120,11 @@ export async function sendResetMail(input: string) {
   });
 
   transporter.sendMail({
-    from: `"Account Template" <${process.env.SMPT_LOGIN}>`,
+    from: `"WiseSpend" <${process.env.SMPT_LOGIN}>`,
     to: email,
-    subject: `Account Template | Reset link`,
+    subject: `WiseSpend | Reset link`,
     text: `Hello ${user.username}
-      \nWelcome To Account Template.
+      \nWelcome To WiseSpend.
       \nHere is your password reset link:
       \n${process.env.HOST}/reset/${token}
       `,

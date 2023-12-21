@@ -21,7 +21,7 @@ export default function SideNav({ verified }: { verified: boolean }) {
     <header className="flex w-full flex-none flex-col p-4 md:h-full md:w-64 md:py-12">
       {/* Logo */}
       <div className="hidden border-b py-8 sm:p-8 md:flex md:justify-center ">
-        <p className="text-center text-2xl md:text-4xl">App</p>
+        <p className="text-center text-2xl md:text-4xl">Wise Spend</p>
       </div>
 
       <div className=" mt-2 flex grow flex-row space-x-2 rounded md:flex-col  md:space-x-0 md:space-y-2">
@@ -32,7 +32,7 @@ export default function SideNav({ verified }: { verified: boolean }) {
             onClick={(e) => {
               if (!verified) e.preventDefault();
             }}
-            className={`hover:bg-dark-200 flex h-[48px] grow items-center justify-center gap-2  p-3 transition-colors md:flex-none md:justify-start md:px-3 md:py-2 ${
+            className={`flex h-[48px] grow items-center justify-center gap-2 p-3  transition-colors hover:bg-dark-200 md:flex-none md:justify-start md:px-3 md:py-2 ${
               !verified ? "cursor-not-allowed" : null
             }`}
           >
@@ -49,7 +49,7 @@ export default function SideNav({ verified }: { verified: boolean }) {
         ))}
 
         <form action={logout}>
-          <button className="text-primary-600 hover:text-primary-400 hover:bg-dark-200 flex h-[48px] w-full items-center justify-center gap-2 p-3 transition-colors md:flex-none md:justify-start md:px-3 md:py-2">
+          <button className="flex h-[48px] w-full items-center justify-center gap-2 p-3 text-primary-600 transition-colors hover:bg-dark-200 hover:text-primary-400 md:flex-none md:justify-start md:px-3 md:py-2">
             <ArrowLeftOnRectangleIcon className="hidden h-6 w-6 md:block" />
             <p className="hidden md:block">Log out</p>
             <ArrowRightOnRectangleIcon className="block h-6 w-6 md:hidden" />
