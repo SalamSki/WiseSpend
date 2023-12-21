@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components{
+  .btn{
+    @apply flex items-center justify-center py-2 px-4 rounded-lg text-lg uppercase focus-visible:outline-2 text-primary-600 focus-visible:outline-offset-2 focus-visible:outline transition-colors shadow-md border border-primary-600 hover:text-primary-400 hover:border-primary-400 disabled:opacity-50  disabled:text-white disabled:cursor-not-allowed disabled:border-white
+  }
+}
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-to-from-rgb: 255, 255, 255, 0.;
+  --background-color: #181818;
+}
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input:-webkit-autofill,
+input:-webkit-autofill:focus {
+  transition: background-color 0s 600000s, color 0s 600000s;
+}
+#optinput{
+  letter-spacing: 0.3em;
+}
