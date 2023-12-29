@@ -8,9 +8,9 @@ export default async function Layout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-screen w-full flex-col md:flex-row md:overflow-hidden">
+    <div className="flex h-screen w-full flex-col-reverse md:flex-row">
       <SideNav />
-      <main className="flex grow flex-col items-center px-4 md:py-12">
+      <main className="flex max-h-screen grow flex-col items-center overflow-y-auto px-4 md:py-12">
         {children}
       </main>
     </div>
