@@ -10,7 +10,7 @@
 :root {
   --foreground-rgb: 255, 255, 255;
   --background-to-from-rgb: 255, 255, 255, 0.;
-  --background-color: #181818;
+  --background-color: #292929;
 }
 * {
   box-sizing: border-box;
@@ -35,4 +35,23 @@ input:-webkit-autofill:focus {
 }
 #optinput{
   letter-spacing: 0.3em;
+}
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: #292929;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #3d3d3d;
+  border-radius: 5px;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #535353;
 }
