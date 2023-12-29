@@ -1,6 +1,6 @@
 {
-  "name": "WiseSpend",
-  "short_name": "Spend your money wisely.",
+  "name": "Wise Spend",
+  "short_name": "WiseSpend",
   "orientation": "any",
   "scope": "/",
   "start_url": "/",
