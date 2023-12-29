@@ -6,10 +6,15 @@ export const userSchema = z
   .string()
   .min(3, { message: "At least 3 characters long." })
   .max(25, { message: "At most 25 characters long." })
-  .regex(RegExp("^[A-Za-z0-9]{3,}$"), {
+  .regex(RegExp("^[A-Za-z0-9 ]*$"), {
     message: "Only letters and numbers allowed",
   })
   .refine((s) => !s.includes(" "), "No Spaces.");
+
+export const budgetSchema = z
+  .string()
+  .min(1, { message: "At least one character long." })
+  .max(20, { message: "At most 20 characters long." });
 
 export const passSchema = z
   .string()

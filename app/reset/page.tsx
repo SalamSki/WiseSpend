@@ -24,18 +24,18 @@ export default function ReqestResetPage() {
       noValidate
       className="mx-auto flex h-screen flex-col lg:container md:justify-center md:overflow-hidden 2xl:max-w-screen-xl"
     >
-      <div className="relative mx-auto flex w-full max-w-screen-sm flex-col space-y-8 px-4 text-center md:py-12 md:text-lg">
+      <div className="relative mx-auto flex max-w-screen-sm flex-col space-y-8 px-4 text-center md:py-12 md:text-lg">
         <h1 className="py-8 text-center text-2xl sm:p-8 md:text-4xl">
           Forgot your password?
         </h1>
 
         {sent ? (
-          <>
+          <div>
             <h1 className="p-4 sm:mx-8">
               An email will be sent if the account exists.
             </h1>
-            <Link href="/reset">Refresh to retry.</Link>
-          </>
+            <span>Refresh to retry.</span>
+          </div>
         ) : (
           <>
             <Input
@@ -60,10 +60,12 @@ export default function ReqestResetPage() {
               }}
             />
 
-            <button className="btn space-x-2" type="submit">
-              <p className="hidden md:block ">Send reset link</p>
-              <PaperAirplaneIcon className="h-6 w-6" />
-            </button>
+            <div className="flex justify-center">
+              <button className="btn space-x-2" type="submit">
+                <p className="hidden md:block ">Send reset link</p>
+                <PaperAirplaneIcon className="h-6 w-6" />
+              </button>
+            </div>
           </>
         )}
 

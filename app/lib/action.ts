@@ -1,5 +1,10 @@
 "use server";
-import { emailSchema, passSchema, userSchema } from "./validation-schemas";
+import {
+  budgetSchema,
+  emailSchema,
+  passSchema,
+  userSchema,
+} from "./validation-schemas";
 import { User } from "@prisma/client";
 import { auth } from "@/auth";
 import prisma from "./prisma";
@@ -8,12 +13,56 @@ import { sendVerificationMail } from "./mailer";
 import { logout } from "./authenticate";
 import { z } from "zod";
 import bcrypt from "bcrypt";
+import { redirect } from "next/navigation";
 
 export type State = {
   success: boolean;
   msg?: string;
 };
 
+export async function getBudgets() {
+  const session = await auth();
+  if (!session) return null;
+
+  const res = await prisma.user.findUnique({
+    where: { id: session.user?.id },
+    select: {
+      owend: true,
+      budgets: true,
+    },
+  });
+  return res ? [...res.owend, ...res.budgets] : [];
+}
+
+export async function createBudget(
+  prevState: string | undefined,
+  input: string,
+) {
+  const session = await auth();
+  if (!session?.user?.id) return "Not signed in!";
+
+  const parsedInput = budgetSchema.safeParse(input);
+  if (!parsedInput.success) return "Invalid Input!";
+
+  const budgetName = parsedInput.data;
+
+  const budgetExists =
+    (await prisma.budget.count({
+      where: {
+        ownerId: session.user.id,
+        name: { equals: budgetName, mode: "insensitive" },
+      },
+    })) > 0;
+  if (budgetExists) return "Name taken!";
+
+  const createdBudget = await prisma.budget.create({
+    data: { name: budgetName, ownerId: session.user.id },
+  });
+
+  redirect(`/main/${createdBudget.id}`);
+}
+
+//account temp functions:
 export async function getUserByID(
   filter: Partial<{ [key in keyof User]: boolean }>,
 ) {
@@ -55,7 +104,7 @@ export async function changeUsername(prevState: State, input: string) {
     },
   });
 
-  revalidatePath("/main/account");
+  revalidatePath("/account");
   return { success: true, msg: "Username changed!" };
 }
 
@@ -79,8 +128,7 @@ export async function changeEmail(prevState: State, input: string) {
 
   await sendVerificationMail(session.user.id);
 
-  revalidatePath("/main/account");
-  return { success: true };
+  redirect("/");
 }
 
 export async function changePass(prevState: State, formData: FormData) {

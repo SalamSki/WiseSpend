@@ -17,4 +17,26 @@ model User {
   verifyDate  DateTime?
   resetToken  String?   @unique
   resetDate   DateTime?
+  budgets     Budget[]
+  owend       Budget[]  @relation(name: "owner")
+}
+
+model Budget {
+  id           String  @id @default(uuid())
+  name         String
+  entries      Entry[]
+  owner        User    @relation(name: "owner", fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId      String
+  contributors User[]
+
+  @@unique([name, ownerId])
+}
+
+model Entry {
+  id       String   @id @default(uuid())
+  store    String
+  date     DateTime
+  amount   Decimal  @db.Money
+  budget   Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  budgetId String
 }

@@ -43,18 +43,14 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <div className="flex space-x-4">
-          <p>Forgot your password?</p>
+        <div className="flex justify-center space-x-12">
           <Link
             className="text-primary-500 hover:text-primary-400"
             href="/reset"
           >
             Reset Password
           </Link>
-        </div>
-        
-        <div className="flex space-x-4">
-          <p>Don&apos;t have an account?</p>
+
           <Link
             className="text-primary-500 hover:text-primary-400"
             href="/signup"

@@ -2,8 +2,8 @@
 import {
   ArrowLeftOnRectangleIcon,
   ArrowRightOnRectangleIcon,
+  ChartPieIcon,
   ChevronLeftIcon,
-  HomeIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
@@ -11,11 +11,11 @@ import { usePathname } from "next/navigation";
 import { logout } from "../lib/authenticate";
 
 const links = [
-  { name: "Main", href: ["/", "/main"], icon: HomeIcon },
-  { name: "Account", href: ["/main/account"], icon: UserIcon },
+  { name: "Budgets", href: ["/", "/main"], icon: ChartPieIcon },
+  { name: "Account", href: ["/account"], icon: UserIcon },
 ];
 
-export default function SideNav({ verified }: { verified: boolean }) {
+export default function SideNav() {
   const path = usePathname();
   return (
     <header className="flex w-full flex-none flex-col p-4 md:h-full md:w-64 md:py-12">
@@ -29,12 +29,8 @@ export default function SideNav({ verified }: { verified: boolean }) {
           <Link
             key={link.name}
             href={link.href[0]}
-            onClick={(e) => {
-              if (!verified) e.preventDefault();
-            }}
-            className={`flex h-[48px] grow items-center justify-center gap-2 p-3  transition-colors hover:bg-dark-200 md:flex-none md:justify-start md:px-3 md:py-2 ${
-              !verified ? "cursor-not-allowed" : null
-            }`}
+
+            className={`flex h-[48px] grow items-center justify-center gap-2 p-3  transition-colors hover:bg-dark-200 md:flex-none md:justify-start md:px-3 md:py-2 `}
           >
             <link.icon
               className={`h-6 w-6 ${
