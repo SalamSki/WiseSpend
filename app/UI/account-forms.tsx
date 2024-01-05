@@ -26,6 +26,7 @@ import { BeatLoader } from "react-spinners";
 import { useFormState, useFormStatus } from "react-dom";
 import { Input } from "@/app/UI/input";
 import { CheckBadgeIcon } from "@heroicons/react/20/solid";
+import { inital_res } from "../lib/utils";
 
 const FormButtons = ({
   closeEdit,
@@ -54,11 +55,6 @@ const FormButtons = ({
       )}
     </div>
   );
-};
-
-const inital_res = {
-  success: false,
-  msg: "",
 };
 
 const AccountForms = ({

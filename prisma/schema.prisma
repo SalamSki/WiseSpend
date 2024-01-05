@@ -36,7 +36,7 @@ model Entry {
   id       String   @id @default(uuid())
   store    String
   date     DateTime
-  amount   Decimal  @db.Money
+  amount   Decimal
   budget   Budget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
   budgetId String
 }

@@ -18,7 +18,7 @@ const links = [
 export default function SideNav() {
   const path = usePathname();
   return (
-    <header className="flex w-full flex-none flex-col px-4 py-2 max-md:border-t max-md:border-dark-300 md:h-full md:w-64 md:py-12">
+    <header className="flex w-full flex-none flex-col px-4 py-2 max-md:border-b max-md:border-dark-300 md:h-full md:w-64 md:py-12">
       {/* Logo */}
       <div className="hidden border-b py-8 sm:p-8 md:flex md:justify-center ">
         <p className="text-center text-2xl md:text-4xl">Wise Spend</p>

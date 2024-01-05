@@ -1,12 +1,27 @@
 import { z } from "zod";
+import { startDate, today } from "./utils";
 
 export const emailSchema = z.string().email();
+
+export const dateSchema = z
+  .date()
+  .min(startDate, {
+    message: "Purchases made only after January 1, 2000, are permitted.",
+  })
+  .max(today, {
+    message: "Purchases made only on or before today are permitted.",
+  });
+
+export const amountSchema = z
+  .number({ invalid_type_error: "Please enter a number." })
+  .positive()
+  .lte(1000000);
 
 export const userSchema = z
   .string()
   .min(3, { message: "At least 3 characters long." })
   .max(25, { message: "At most 25 characters long." })
-  .regex(RegExp("^[A-Za-z0-9 ]*$"), {
+  .regex(RegExp(/[\p{L}\p{N} ]+/u), {
     message: "Only letters and numbers allowed",
   })
   .refine((s) => !s.includes(" "), "No Spaces.");

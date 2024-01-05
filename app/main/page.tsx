@@ -1,5 +1,5 @@
 import { ChartPieIcon } from "@heroicons/react/24/outline";
-import AddBudget from "../UI/budget-form";
+import AddBudget from "../UI/create-budget-form";
 import BudgetList from "../UI/budget-list";
 import { getBudgets } from "../lib/action";
 

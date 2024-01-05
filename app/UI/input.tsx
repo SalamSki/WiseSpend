@@ -41,7 +41,7 @@ export function Input({
         <input
           id={id}
           type={
-            type === "password" ? (showPassword ? "text" : "password") : "text"
+            type === "password" ? (showPassword ? "text" : "password") : type
           }
           {...rest}
           className={clsx(

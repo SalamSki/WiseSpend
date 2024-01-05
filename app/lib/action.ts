@@ -1,6 +1,8 @@
 "use server";
 import {
+  amountSchema,
   budgetSchema,
+  dateSchema,
   emailSchema,
   passSchema,
   userSchema,
@@ -14,6 +16,7 @@ import { logout } from "./authenticate";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import { redirect } from "next/navigation";
+import { monthOrder } from "./utils";
 
 export type State = {
   success: boolean;
@@ -60,6 +63,99 @@ export async function createBudget(
   });
 
   redirect(`/main/${createdBudget.id}`);
+}
+
+export async function addEntry(
+  budgetID: string,
+  prevState: State,
+  formData: {
+    date: Date;
+    store: string;
+    amount: number;
+  },
+) {
+  const session = await auth();
+  if (!(session && session.user))
+    return { success: false, msg: "Not Signed In!" };
+
+  //RBAC, only owner or contributors are allowed to preform this action.
+  const allowedUsers = await prisma.budget.findUnique({
+    where: { id: budgetID },
+    select: {
+      ownerId: true,
+      contributors: {
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+  if (
+    session.user.id !== allowedUsers?.ownerId &&
+    !allowedUsers?.contributors.includes({ id: session.user.id })
+  )
+    return { success: false, msg: "Action not permitted!" };
+
+  const parsedFields = z
+    .object({
+      date: dateSchema,
+      store: userSchema,
+      amount: amountSchema,
+    })
+    .safeParse(formData);
+  if (!parsedFields.success) return { success: false, msg: "Invalid Input!" };
+
+  const { date, store, amount } = parsedFields.data;
+
+  await prisma.entry.create({
+    data: {
+      budget: {
+        connect: { id: budgetID },
+      },
+      amount,
+      date,
+      store,
+    },
+  });
+  revalidatePath(`/main/${budgetID}`);
+  return {
+    success: true,
+    msg: `${date.getFullYear()}-${monthOrder[date.getMonth()]}`,
+  };
+}
+
+export async function deleteEntries(budgetID: string, IDs: string[]) {
+  const session = await auth();
+  if (!(session && session.user)) return "Not Signed In!";
+
+  //RBAC, only owner or contributors are allowed to preform this action.
+  const allowedUsers = await prisma.budget.findUnique({
+    where: { id: budgetID },
+    select: {
+      ownerId: true,
+      contributors: {
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+  if (
+    session.user.id !== allowedUsers?.ownerId &&
+    !allowedUsers?.contributors.includes({ id: session.user.id })
+  )
+    return "Action not permitted!";
+
+  await prisma.entry.deleteMany({
+    where: {
+      id: {
+        in: IDs,
+      },
+    },
+  });
+
+  revalidatePath(`/main/${budgetID}`);
+  return "";
 }
 
 //account temp functions:

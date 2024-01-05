@@ -14,6 +14,51 @@ export default otpAsciiChars;
 if (process.env.NODE_ENV !== "production")
   globalForOtpAsciiChars.otpAsciiChars = otpAsciiChars;
 
+export function dateToString(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+    2,
+    "0",
+  )}-${String(date.getDay()).padStart(2, "0")}`;
+}
+
+export const startDate = new Date("2000-01-01");
+export const today = new Date();
+export const todayString = dateToString(new Date());
+
+export const inital_res = {
+  success: false,
+  msg: "",
+};
+
+
+export const monthOrder = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+export const montOrderShort = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "June",
+  "July",
+  "Aug",
+  "Sept",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 export const verificationEmailHTML = (username: string, otp: string) => `
 <div style='
       background-color: #121212;
