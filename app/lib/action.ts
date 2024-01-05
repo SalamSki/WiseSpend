@@ -26,15 +26,27 @@ export type State = {
 export async function getBudgets() {
   const session = await auth();
   if (!session) return null;
-
-  const res = await prisma.user.findUnique({
-    where: { id: session.user?.id },
-    select: {
-      owend: true,
-      budgets: true,
+  return await prisma.budget.findMany({
+    where: {
+      OR: [
+        { ownerId: session.user?.id },
+        {
+          contributors: {
+            some: {
+              id: session.user?.id,
+            },
+          },
+        },
+      ],
+    },
+    include: {
+      owner: {
+        select: {
+          username: true,
+        },
+      },
     },
   });
-  return res ? [...res.owend, ...res.budgets] : [];
 }
 
 export async function createBudget(
@@ -92,10 +104,9 @@ export async function addEntry(
   });
   if (
     session.user.id !== allowedUsers?.ownerId &&
-    !allowedUsers?.contributors.includes({ id: session.user.id })
+    !allowedUsers?.contributors.map((user) => user.id).includes(session.user.id)
   )
     return { success: false, msg: "Action not permitted!" };
-
   const parsedFields = z
     .object({
       date: dateSchema,
@@ -142,7 +153,7 @@ export async function deleteEntries(budgetID: string, IDs: string[]) {
   });
   if (
     session.user.id !== allowedUsers?.ownerId &&
-    !allowedUsers?.contributors.includes({ id: session.user.id })
+    !allowedUsers?.contributors.map((user) => user.id).includes(session.user.id)
   )
     return "Action not permitted!";
 

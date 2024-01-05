@@ -2,8 +2,10 @@ import { ChartPieIcon } from "@heroicons/react/24/outline";
 import AddBudget from "../UI/create-budget-form";
 import BudgetList from "../UI/budget-list";
 import { getBudgets } from "../lib/action";
+import { auth } from "@/auth";
 
 export default async function MainPage() {
+  const session = await auth();
   const budgets = await getBudgets();
   const budgetsExists = budgets && budgets.length > 0;
   return (
@@ -24,7 +26,11 @@ export default async function MainPage() {
 
       <AddBudget />
 
-      {budgetsExists ? <BudgetList budgets={budgets} /> : <></>}
+      {budgetsExists ? (
+        <BudgetList budgets={budgets} myID={session?.user?.id || ""} />
+      ) : (
+        <></>
+      )}
     </div>
   );
 }

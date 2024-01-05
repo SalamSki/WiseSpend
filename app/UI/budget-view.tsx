@@ -57,7 +57,6 @@ export default function BudgetView({
   //year slider
   const [yearIndex, setYearIndex] = useState(0);
   const [yearWindowSize, setYearWindowSize] = useState(5);
-  const [yearSliderTouch, setYearSliderTouch] = useState(0);
   const [loadingSlider, setLoadingSlider] = useState(true);
 
   const changeSelectedYear = (year: number) => {
@@ -201,32 +200,7 @@ export default function BudgetView({
                 Loading...
               </p>
             ) : (
-              <div
-                className="flex w-full items-center justify-evenly"
-                onWheel={(e) => {
-                  if (e.deltaY > 0)
-                    setYearIndex(
-                      yearIndex < years.length - yearWindowSize
-                        ? yearIndex + 1
-                        : years.length - yearWindowSize,
-                    );
-                  else setYearIndex(yearIndex > 0 ? yearIndex - 1 : 0);
-                }}
-                onTouchStart={(e) => setYearSliderTouch(e.touches[0].clientX)}
-                onTouchEnd={(e) => {
-                  const changeX = e.changedTouches[0].clientX - yearSliderTouch;
-                  if (Math.abs(changeX) > 50) {
-                    if (changeX > 0)
-                      setYearIndex(
-                        yearIndex < years.length - yearWindowSize
-                          ? yearIndex + 1
-                          : years.length - yearWindowSize,
-                      );
-                    else setYearIndex(yearIndex > 0 ? yearIndex - 1 : 0);
-                  }
-                  setYearSliderTouch(0);
-                }}
-              >
+              <div className="flex w-full items-center justify-evenly overscroll-none">
                 {years.length > yearWindowSize ? (
                   <>
                     <ChevronLeftIcon
@@ -253,8 +227,6 @@ export default function BudgetView({
                           onClick={() => changeSelectedYear(year)}
                           className={`cursor-pointer select-none px-6 py-2 hover:text-primary-600 ${
                             year === selectedYear ? "text-primary-500" : ""
-                          } ${
-                            yearSliderTouch !== 0 ? "pointer-events-none" : ""
                           }`}
                           key={year}
                         >
@@ -574,10 +546,7 @@ export default function BudgetView({
             className="flex min-h-[80px] w-full items-center justify-start space-x-4 overflow-x-auto overscroll-contain p-4"
             onWheel={(e) => {
               const storesDiv = document.querySelector("#storesDiv");
-              if (storesDiv) {
-                if (e.deltaY > 0) storesDiv.scrollLeft += 30;
-                else storesDiv.scrollLeft -= 30;
-              }
+              if (storesDiv) storesDiv.scrollLeft += e.deltaY;
             }}
           >
             {stores.map((s) => (
