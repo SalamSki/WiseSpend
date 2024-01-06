@@ -237,7 +237,7 @@ export default function BudgetView({
       budgetNameResponse.msg = undefined;
     }
   }, [budgetNameResponse]);
-  
+
   return (
     <>
       <div className="grow xl:overflow-y-auto">
@@ -402,7 +402,7 @@ export default function BudgetView({
                                 checkBoxOn ? "" : "rounded-bl-lg rounded-tl-lg"
                               } ${index % 2 === 0 ? "bg-dark-200" : ""}`}
                             >
-                              {`${String(date.getDay()).padStart(2, "0")} ${
+                              {`${String(date.getDate()).padStart(2, "0")} ${
                                 montOrderShort[date.getMonth()]
                               }`}
                             </p>
@@ -420,7 +420,7 @@ export default function BudgetView({
                                 index % 2 === 0 ? "bg-dark-200" : ""
                               }`}
                             >
-                              {amount}
+                              {amount.toFixed(2)}
                             </p>
                           </React.Fragment>
                         ),
@@ -505,10 +505,9 @@ export default function BudgetView({
                           selectedContent.length % 2 === 0 ? "bg-dark-200" : ""
                         }`}
                       >
-                        {selectedContent.reduce(
-                          (sum, entry) => sum + entry.amount,
-                          0,
-                        )}
+                        {selectedContent
+                          .reduce((sum, entry) => sum + entry.amount, 0)
+                          .toFixed(2)}
                       </p>
                     </div>
                   ) : (
@@ -557,7 +556,6 @@ export default function BudgetView({
           <h1 className="select-none text-center text-lg text-primary-500 md:text-xl">
             Add purchase
           </h1>
-
           {stores.length > 0 ? (
             <div
               id="storesDiv"
@@ -637,7 +635,11 @@ export default function BudgetView({
                     );
                   setSelectedYear(newDate.getFullYear());
                 }
-                setOpenMonth("");
+                setOpenMonth(
+                  months.includes(monthOrder[newDate.getMonth()])
+                    ? monthOrder[newDate.getMonth()]
+                    : "",
+                );
                 setCheckBoxOn(false);
               }
               setDate(input);
