@@ -18,7 +18,7 @@ export default async function MainPage() {
       {!budgetsExists ? (
         <div className="flex flex-col items-center justify-center py-8 text-center md:text-2xl">
           <span className="text-primary-500">Welcome to WiseSpend!</span>
-          <span>Start by creating a budget to track your expenses.</span>
+          <span>Start tracking your expenses by creating a budget.</span>
         </div>
       ) : (
         <></>

@@ -19,7 +19,7 @@ model User {
   resetDate   DateTime?
   budgets     Budget[]
   owend       Budget[]  @relation(name: "owner")
-  Invite      Invite[]
+  invites     Invite[]
 }
 
 model Invite {
@@ -39,7 +39,7 @@ model Budget {
   owner        User     @relation(name: "owner", fields: [ownerId], references: [id], onDelete: Cascade)
   ownerId      String
   contributors User[]
-  Invite       Invite[]
+  invites      Invite[]
 
   @@unique([name, ownerId])
 }

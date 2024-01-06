@@ -1,9 +1,8 @@
 import BudgetView from "@/app/UI/budget-view";
-import { getBudgets } from "@/app/lib/action";
+import { getBudget } from "@/app/lib/action";
 import prisma from "@/app/lib/prisma";
-import { dateToString } from "@/app/lib/utils";
-import { Entry } from "@prisma/client";
-import { notFound, redirect } from "next/navigation";
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 
 export type Purchace = {
   id: string;
@@ -17,24 +16,13 @@ export default async function BudgetPage({
 }: {
   params: { budgetID: string };
 }) {
-  const budget = (await getBudgets())?.filter(
-    (budget) => budget.id === params.budgetID,
-  )[0];
-  if (!budget) redirect("/main");
+  const session = await auth();
+  const budget = await getBudget(params.budgetID);
+  if (!budget || !session?.user?.id) redirect("/main");
 
-  const entries = (
-    await prisma.entry.findMany({
-      where: {
-        budgetId: params.budgetID,
-      },
-      select: {
-        id: true,
-        date: true,
-        store: true,
-        amount: true,
-      },
-    })
-  ).map((entry) => {
+  const { id, name, ownerId, entries, owner, contributors } = budget;
+
+  const mappedEntries: Purchace[] = entries.map((entry) => {
     const { amount, date, ...rest } = entry;
     return {
       amount: Number(amount),
@@ -42,7 +30,6 @@ export default async function BudgetPage({
       ...rest,
     };
   });
-
   const years = (
     await prisma.$queryRaw<{ year: number }[]>`
     SELECT
@@ -55,8 +42,14 @@ export default async function BudgetPage({
   ).map((entry) => entry.year);
 
   return (
-    <div className="flex h-full w-full flex-col space-y-12 xl:flex-row">
-      <BudgetView budget={budget} entries={entries} years={years.sort()} />
+    <div className="flex h-full w-full flex-col max-md:space-y-12 xl:flex-row">
+      <BudgetView
+        budget={{ id, name, ownerId, owner }}
+        entries={mappedEntries}
+        contributors={contributors}
+        years={years.sort()}
+        myID={session.user.id}
+      />
     </div>
   );
 }

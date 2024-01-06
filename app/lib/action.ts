@@ -23,6 +23,279 @@ export type State = {
   msg?: string;
 };
 
+export async function leaveBudget(budgetID: string) {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+
+  const user = await prisma.user.findUnique({
+    where: {
+      id: session.user.id,
+    },
+    select: {
+      budgets: {
+        where: { id: budgetID },
+        select: { id: true },
+      },
+    },
+  });
+  if (!user || user.budgets.length !== 1) return null;
+
+  await prisma.budget.update({
+    where: {
+      id: user.budgets[0].id,
+    },
+    data: {
+      contributors: {
+        disconnect: {
+          id: session.user.id,
+        },
+      },
+    },
+  });
+
+  redirect("/main");
+}
+
+export async function acceptInvite(budgetID: string) {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+
+  const invite = await prisma.invite.findUnique({
+    where: {
+      invitedId_budgetId: {
+        budgetId: budgetID,
+        invitedId: session.user.id,
+      },
+    },
+  });
+  if (!invite || new Date().getTime() - invite.invDate.getTime() > 259200000)
+    return null;
+
+  await prisma.budget.update({
+    where: {
+      id: invite.budgetId,
+    },
+    data: {
+      contributors: {
+        connect: {
+          id: invite.invitedId,
+        },
+      },
+    },
+  });
+
+  await prisma.invite.delete({
+    where: {
+      invitedId_budgetId: {
+        budgetId: budgetID,
+        invitedId: session.user.id,
+      },
+    },
+  });
+
+  revalidatePath("/account");
+  return null;
+}
+
+export async function rejectInvite(budgetID: string) {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+
+  const invite = await prisma.invite.findUnique({
+    where: {
+      invitedId_budgetId: {
+        budgetId: budgetID,
+        invitedId: session.user.id,
+      },
+    },
+  });
+  if (!invite) return null;
+
+  await prisma.invite.delete({
+    where: {
+      invitedId_budgetId: {
+        budgetId: budgetID,
+        invitedId: session.user.id,
+      },
+    },
+  });
+
+  revalidatePath("/account");
+  return null;
+}
+
+export async function getInvites() {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+  return await prisma.invite.findMany({
+    where: {
+      invitedId: session.user.id,
+    },
+    select: {
+      budgetId: true,
+      invDate: true,
+      budget: {
+        select: {
+          name: true,
+          owner: {
+            select: {
+              username: true,
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+export async function removeContributor(
+  budgetID: string,
+  contributorID: string,
+) {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+
+  const budget = await prisma.budget.findUnique({
+    where: {
+      id: budgetID,
+      contributors: {
+        some: {
+          id: contributorID,
+        },
+      },
+      ownerId: session.user.id,
+    },
+    select: { id: true },
+  });
+  if (!budget) return null;
+
+  await prisma.budget.update({
+    where: {
+      id: budget.id,
+    },
+    data: {
+      contributors: {
+        disconnect: {
+          id: contributorID,
+        },
+      },
+    },
+  });
+  revalidatePath(`/main/${budgetID}`);
+}
+
+export async function inviteUserToBudget(
+  budgetID: string,
+  prevState: State,
+  formData: FormData,
+) {
+  const session = await auth();
+  if (!session?.user?.id) return { msg: "Not signed in!", success: false };
+
+  //Check if current user is owner of budget.
+  const budget = await prisma.budget.findUnique({
+    where: {
+      id: budgetID,
+    },
+    include: {
+      contributors: {
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+  if (budget?.ownerId !== session.user.id || budget.contributors.length >= 5)
+    return { msg: "Action not permitted!", success: false };
+
+  const input = Object.fromEntries(formData);
+
+  //default to email
+  let type = 0;
+  let parsedIdentifier = emailSchema.safeParse(input.identifier);
+
+  if (!parsedIdentifier.success) {
+    //if not email, fallback to username
+    type = 1;
+    parsedIdentifier = userSchema.safeParse(input.identifier);
+    if (!parsedIdentifier.success)
+      return { msg: "No such user.", success: false };
+  }
+
+  const identifier = parsedIdentifier.data;
+  //Fetch user if it exists
+  let invited = null;
+  if (type === 0) {
+    invited = await prisma.user.findUnique({
+      where: { email: identifier },
+      select: {
+        id: true,
+        username: true,
+      },
+    });
+  } else {
+    invited = await prisma.user.findFirst({
+      where: {
+        username: {
+          equals: identifier,
+          mode: "insensitive",
+        },
+      },
+      select: {
+        id: true,
+        username: true,
+      },
+    });
+  }
+  if (!invited) return { msg: "No such user.", success: false };
+
+  if (invited.id === session.user.id)
+    return { msg: "Can't invite yourself...", success: false };
+
+  if (budget.contributors.map((user) => user.id).includes(invited.id))
+    return { msg: "User already has access.", success: false };
+
+  await prisma.invite.create({
+    data: {
+      invDate: new Date(),
+      budget: { connect: { id: budgetID } },
+      invited: { connect: { id: invited.id } },
+    },
+  });
+  return { msg: invited.username, success: true };
+}
+
+export async function getBudget(budgetID: string) {
+  const session = await auth();
+  if (!session) return null;
+  return await prisma.budget.findUnique({
+    where: {
+      id: budgetID,
+    },
+    include: {
+      entries: {
+        select: {
+          id: true,
+          date: true,
+          store: true,
+          amount: true,
+        },
+      },
+      owner: {
+        select: {
+          username: true,
+        },
+      },
+      contributors: {
+        select: {
+          username: true,
+          id: true,
+        },
+      },
+    },
+  });
+}
+
 export async function getBudgets() {
   const session = await auth();
   if (!session) return null;
@@ -75,6 +348,55 @@ export async function createBudget(
   });
 
   redirect(`/main/${createdBudget.id}`);
+}
+
+export async function changeBudgetName(
+  budgetID: string,
+  prevState: State,
+  input: string,
+) {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, msg: "Not signed in!" };
+
+  const parsedInput = budgetSchema.safeParse(input);
+  if (!parsedInput.success) return { success: false, msg: "Invalid Input!" };
+
+  const budgetName = parsedInput.data;
+
+  const budgetExists =
+    (await prisma.budget.count({
+      where: {
+        ownerId: session.user.id,
+        name: { equals: budgetName, mode: "insensitive" },
+      },
+    })) > 0;
+  if (budgetExists) return { success: false, msg: "Name taken!" };
+
+  await prisma.budget.update({
+    where: {
+      id: budgetID,
+    },
+    data: {
+      name: budgetName,
+    },
+  });
+
+  revalidatePath(`/main/${budgetID}`);
+  return { success: true };
+}
+
+export async function deleteBudget(budgetID: string) {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+
+  await prisma.budget.delete({
+    where: {
+      id: budgetID,
+      ownerId: session.user.id,
+    },
+  });
+
+  redirect("/main");
 }
 
 export async function addEntry(

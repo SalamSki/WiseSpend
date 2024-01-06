@@ -12,11 +12,19 @@ import {
 import { z } from "zod";
 import {
   amountSchema,
+  budgetSchema,
   dateSchema,
   userSchema,
 } from "../lib/validation-schemas";
 import { useFormState } from "react-dom";
-import { addEntry, deleteEntries } from "../lib/action";
+import {
+  addEntry,
+  changeBudgetName,
+  deleteBudget,
+  deleteEntries,
+  inviteUserToBudget,
+  removeContributor,
+} from "../lib/action";
 import { Purchace } from "../main/[budgetID]/page";
 import {
   ChevronDownIcon,
@@ -28,7 +36,8 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import React from "react";
-import { ClipLoader } from "react-spinners";
+import clsx from "clsx";
+import LeaveBudgetForm from "./leave-budget-form";
 
 type Errors = {
   date?: string[] | undefined;
@@ -40,25 +49,32 @@ export default function BudgetView({
   budget,
   entries,
   years,
+  contributors,
+  myID,
 }: {
   budget: {
     id: string;
     name: string;
     ownerId: string;
+    owner: {
+      username: string;
+    };
   };
   entries: Purchace[];
   years: number[];
+  contributors: {
+    id: string;
+    username: string;
+  }[];
+  myID: string;
 }) {
+  //year slider
   const [selectedYear, setSelectedYear] = useState(
     years.length > 0 ? years[years.length - 1] : today.getFullYear(),
   );
-  const [openMonth, setOpenMonth] = useState("");
-
-  //year slider
   const [yearIndex, setYearIndex] = useState(0);
   const [yearWindowSize, setYearWindowSize] = useState(5);
   const [loadingSlider, setLoadingSlider] = useState(true);
-
   const changeSelectedYear = (year: number) => {
     setSelectedYear(year);
     const newDateAsArray = date.split("-");
@@ -67,22 +83,23 @@ export default function BudgetView({
     setOpenMonth("");
   };
 
+  //Month Accordion
+  const [openMonth, setOpenMonth] = useState("");
+
+  //Content filter & Month Extraction
   const yearFilterdContent = entries.filter(
     (entry) => entry.date.getFullYear() === selectedYear,
   );
-
-  //extract months
   const months = [
     ...new Set(
       yearFilterdContent.map((entry) => monthOrder[entry.date.getMonth()]),
     ),
   ].sort((a, b) => monthOrder.indexOf(b) - monthOrder.indexOf(a));
-
-  //content filter
   const selectedContent = yearFilterdContent.filter(
     (entry) => monthOrder[entry.date.getMonth()] === openMonth,
   );
 
+  //Year Slider & Delete
   useEffect(() => {
     //year slider
     if (years.length - yearIndex - 1 < years.indexOf(selectedYear)) {
@@ -109,7 +126,7 @@ export default function BudgetView({
     }
   }, [yearIndex, selectedYear, years, yearWindowSize]);
 
-  //scroll
+  //Scroll On Month Load
   const scrollContent = useRef(null);
   useEffect(() => {
     const scrollToElement = scrollContent.current;
@@ -133,21 +150,18 @@ export default function BudgetView({
     if (!checkBoxOn) setSelectedPurchases([]);
   }, [checkBoxOn]);
 
-  //move slider
-  const stores = [...new Set(entries.map((entry) => entry.store))];
-  //
-  //
-  //
   //purcahse form
   const [date, setDate] = useState(todayString);
   const [store, setStore] = useState("");
   const [amount, setAmount] = useState<number | string>("");
-  const [response, dispatch] = useFormState(
+  const stores = [...new Set(entries.map((entry) => entry.store))];
+  const [purchaseResponse, purchaseDispatch] = useFormState(
     addEntry.bind(null, budget.id),
     inital_res,
   );
-  const [errors, setErrors] = useState<Errors>({});
+  const [purcahseErrors, setPurcahseErrors] = useState<Errors>({});
 
+  //Responsive Year Slider
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth > 768 && yearWindowSize !== 5) setYearWindowSize(5);
@@ -159,9 +173,10 @@ export default function BudgetView({
     return () => window.removeEventListener("resize", handleResize);
   }, [yearWindowSize]);
 
+  //onPurchaseSuccess
   useEffect(() => {
-    if (response.success) {
-      const [resYear, resMonth] = response.msg.split("-");
+    if (purchaseResponse.success) {
+      const [resYear, resMonth] = purchaseResponse.msg.split("-");
       if (
         years.length - yearWindowSize - yearIndex >
         years.indexOf(Number(resYear))
@@ -178,20 +193,61 @@ export default function BudgetView({
       setOpenMonth(resMonth);
       setStore("");
       setAmount("");
-      response.success = false;
-      response.msg = "";
+      purchaseResponse.success = false;
+      purchaseResponse.msg = "";
       document.querySelectorAll("input").forEach((input) => input.blur());
     }
-  }, [response, years, yearIndex, yearWindowSize]);
+  }, [purchaseResponse, years, yearIndex, yearWindowSize]);
 
+  //Operations Accordion
+  const [operationsAccordion, setOperationsAccordion] = useState<
+    0 | 1 | 2 | 3 | 4
+  >(0);
+
+  //Invite Form
+  const [inviteResponse, inviteDispatch] = useFormState(
+    inviteUserToBudget.bind(null, budget.id),
+    inital_res,
+  );
+  const [showInv, setShowInv] = useState(false);
+  useEffect(() => {
+    if (inviteResponse.success) {
+      setShowInv(true);
+      setTimeout(() => {
+        setShowInv(false);
+        inviteResponse.success = false;
+        inviteResponse.msg = "";
+      }, 3000);
+    }
+  }, [inviteResponse]);
+
+  //budgetName Form
+  const [budgetName, setBudgetName] = useState("");
+  const [budgetNameErrors, setBudgetNameErrors] = useState<string[]>([]);
+  const [budgetNameResponse, budgetNameDispatch] = useFormState(
+    changeBudgetName.bind(null, budget.id),
+    inital_res,
+  );
+  useEffect(() => {
+    if (budgetNameResponse.success) {
+      setOperationsAccordion(0);
+      setBudgetName("");
+      setBudgetNameErrors([]);
+      budgetNameResponse.success = false;
+      budgetNameResponse.msg = undefined;
+    }
+  }, [budgetNameResponse]);
+  
   return (
     <>
       <div className="grow xl:overflow-y-auto">
+        {/* Header */}
         <h1 className="flex items-center justify-center space-x-4 py-8 text-center text-2xl sm:p-8 md:text-4xl">
           <ChartPieIcon className="h-8 w-8" />
           <p>{budget.name}</p>
         </h1>
 
+        {/* Mainpanel */}
         {years.length > 0 ? (
           <div className="flex flex-col items-center">
             {/* Year slider */}
@@ -260,9 +316,7 @@ export default function BudgetView({
               </div>
             )}
 
-            {/* 
-                Year Content
-            */}
+            {/* Year Content */}
             <div className="flex w-full flex-col md:p-8">
               {months.map((month: string) => (
                 <div key={month}>
@@ -294,9 +348,10 @@ export default function BudgetView({
                   {/* Table */}
                   {month === openMonth ? (
                     <div
-                      className={`mx-2 my-4 grid grid-cols-${
-                        checkBoxOn ? "[7%_31%_31%_31%]" : "3"
-                      }  p-4 text-center`}
+                      className={clsx(`mx-2 my-4 grid p-4 text-center`, {
+                        "grid-cols-[7%_31%_31%_31%]": checkBoxOn,
+                        "grid-cols-3": !checkBoxOn,
+                      })}
                     >
                       {/* Table Header */}
                       <p
@@ -308,7 +363,6 @@ export default function BudgetView({
                       </p>
                       <p className="p-4 text-primary-500">Store</p>
                       <p className="p-4 text-primary-500">Amount</p>
-
                       {/* Table Body */}
                       {selectedContent.map(
                         ({ id, amount, date, store }, index) => (
@@ -371,7 +425,6 @@ export default function BudgetView({
                           </React.Fragment>
                         ),
                       )}
-
                       {/* Table tail */}
                       {checkBoxOn ? (
                         <>
@@ -409,7 +462,7 @@ export default function BudgetView({
                               <TrashIcon
                                 className={`h-8 w-8 ${
                                   selectedPurchases.length > 0
-                                    ? "cursor-pointer text-primary-500 hover:text-primary-600"
+                                    ? "cursor-pointer text-primary-500 hover:text-red-500"
                                     : "text-dark-500"
                                 }`}
                                 onClick={() => {
@@ -466,150 +519,370 @@ export default function BudgetView({
             </div>
           </div>
         ) : (
-          <p className="py-12 text-center text-2xl">No purchases yet!</p>
+          //
+          //
+          // Empty Budget
+          <p className="py-12 text-center text-2xl">
+            <span className="text-primary-500">The budget is empty.</span>
+            <br /> Add purchases to track your expenses over time.
+          </p>
         )}
       </div>
 
-      {/* Purchase Form */}
-      <form
-        autoComplete="off"
-        noValidate
-        className="flex w-full flex-col space-y-2 px-2 py-6 md:w-72 xl:h-full xl:w-96 xl:space-y-4 xl:px-8 2xl:py-36 "
-        onSubmit={(e) => {
-          e.preventDefault();
-          const payload = {
-            date: new Date(date),
-            store,
-            amount: Number(amount),
-          };
-          const parsedFields = z
-            .object({
-              date: dateSchema,
-              store: userSchema,
-              amount: amountSchema,
-            })
-            .safeParse(payload);
-          if (parsedFields.success) dispatch(payload);
-          else setErrors(parsedFields.error.flatten().fieldErrors);
-        }}
-      >
-        <h1 className="select-none text-center text-lg text-primary-500 md:text-xl">
-          Add purchase
-        </h1>
-        <Input
-          min={"2000-01-01"}
-          max={todayString}
-          className="pr-0"
+      {/* Sidepanel */}
+      <div className="flex flex-col md:flex-row xl:w-96 xl:flex-col xl:pt-24">
+        {/* Purchase Form */}
+        <form
           autoComplete="off"
-          label="Date"
-          id="date"
-          name="date"
-          type="date"
-          required
-          value={date}
-          onChange={(e) => {
-            const input = e.target.value;
-            const newDate = new Date(input);
-            if (dateSchema.safeParse(newDate).success) {
-              if (errors.date) errors.date = undefined;
-              if (years.includes(newDate.getFullYear())) {
-                if (
-                  years.length - yearWindowSize - yearIndex >
-                  years.indexOf(Number(newDate.getFullYear()))
-                )
-                  setYearIndex(
-                    years.length -
-                      yearWindowSize -
-                      years.indexOf(Number(newDate.getFullYear())),
-                  );
-                else if (
-                  years.length - yearIndex - 1 <
-                  years.indexOf(Number(newDate.getFullYear()))
-                )
-                  setYearIndex(
-                    yearIndex -
-                      (years.indexOf(Number(newDate.getFullYear())) -
-                        (years.length - yearIndex - 1)),
-                  );
-                setSelectedYear(newDate.getFullYear());
-              }
-              setOpenMonth("");
-              setCheckBoxOn(false);
-            }
-            setDate(input);
+          noValidate
+          className="flex flex-col space-y-2 px-2 md:w-2/3 md:px-8 xl:w-full xl:space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const payload = {
+              date: new Date(date),
+              store,
+              amount: Number(amount),
+            };
+            const parsedFields = z
+              .object({
+                date: dateSchema,
+                store: userSchema,
+                amount: amountSchema,
+              })
+              .safeParse(payload);
+            if (parsedFields.success) purchaseDispatch(payload);
+            else setPurcahseErrors(parsedFields.error.flatten().fieldErrors);
           }}
-          errors={errors.date}
-        />
-        {stores.length > 0 ? (
-          <div
-            id="storesDiv"
-            className="flex min-h-[80px] w-full items-center justify-start space-x-4 overflow-x-auto overscroll-contain p-4"
-            onWheel={(e) => {
-              const storesDiv = document.querySelector("#storesDiv");
-              if (storesDiv) storesDiv.scrollLeft += e.deltaY;
+        >
+          <h1 className="select-none text-center text-lg text-primary-500 md:text-xl">
+            Add purchase
+          </h1>
+
+          {stores.length > 0 ? (
+            <div
+              id="storesDiv"
+              className="flex min-h-[80px] w-full items-center justify-start space-x-4 overflow-x-auto overscroll-contain p-4"
+              onWheel={(e) => {
+                const storesDiv = document.querySelector("#storesDiv");
+                if (storesDiv) storesDiv.scrollLeft += e.deltaY;
+              }}
+            >
+              {stores.map((s) => (
+                <p
+                  className={`cursor-pointer rounded-full bg-dark-200 px-4 py-2 hover:bg-dark-300 ${
+                    store === s ? "text-primary-500" : ""
+                  }`}
+                  key={s}
+                  onClick={() => setStore(s)}
+                >
+                  {s}
+                </p>
+              ))}
+            </div>
+          ) : (
+            <></>
+          )}
+          <Input
+            autoComplete="off"
+            label="Store"
+            placeholder="store"
+            id="store"
+            name="store"
+            type="text"
+            required
+            value={store}
+            onChange={(e) => {
+              const input = e.target.value.trim();
+              if (purcahseErrors.store && userSchema.safeParse(input).success)
+                purcahseErrors.store = undefined;
+              setStore(input);
             }}
-          >
-            {stores.map((s) => (
-              <p
-                className={`cursor-pointer rounded-full bg-dark-200 px-4 py-2 hover:bg-dark-300 ${
-                  store === s ? "text-primary-500" : ""
+            errors={purcahseErrors.store}
+          />
+
+          <Input
+            min={"2000-01-01"}
+            max={todayString}
+            className="pr-0"
+            autoComplete="off"
+            label="Date"
+            id="date"
+            name="date"
+            type="date"
+            required
+            value={date}
+            onChange={(e) => {
+              const input = e.target.value;
+              const newDate = new Date(input);
+              if (dateSchema.safeParse(newDate).success) {
+                if (purcahseErrors.date) purcahseErrors.date = undefined;
+                if (years.includes(newDate.getFullYear())) {
+                  if (
+                    years.length - yearWindowSize - yearIndex >
+                    years.indexOf(Number(newDate.getFullYear()))
+                  )
+                    setYearIndex(
+                      years.length -
+                        yearWindowSize -
+                        years.indexOf(Number(newDate.getFullYear())),
+                    );
+                  else if (
+                    years.length - yearIndex - 1 <
+                    years.indexOf(Number(newDate.getFullYear()))
+                  )
+                    setYearIndex(
+                      yearIndex -
+                        (years.indexOf(Number(newDate.getFullYear())) -
+                          (years.length - yearIndex - 1)),
+                    );
+                  setSelectedYear(newDate.getFullYear());
+                }
+                setOpenMonth("");
+                setCheckBoxOn(false);
+              }
+              setDate(input);
+            }}
+            errors={purcahseErrors.date}
+          />
+
+          <Input
+            min={1}
+            max={1000000}
+            step={0.01}
+            autoComplete="off"
+            label="Amount"
+            placeholder="0 - 999,999"
+            id="amount"
+            name="amount"
+            type="number"
+            inputMode="decimal"
+            required
+            value={amount === 0 ? "" : amount}
+            onChange={(e) => {
+              const input = e.target.value;
+              if (/^[0-9]{0,7}(\.[0-9]{0,2})?$/.test(input)) {
+                if (
+                  purcahseErrors.amount &&
+                  amountSchema.safeParse(Number(input)).success
+                )
+                  purcahseErrors.amount = undefined;
+                setAmount(Number(input));
+              }
+            }}
+            errors={purcahseErrors.amount}
+          />
+          <button className="btn">Submit</button>
+        </form>
+
+        {/* Operation Section */}
+        {myID === budget.ownerId ? (
+          //
+          //
+          // Owner Operations
+          <div className="mt-8 flex flex-col px-2 md:w-1/2 md:justify-around md:px-8 xl:w-full">
+            {/* Contributors List */}
+            {contributors.length > 0 ? (
+              <div
+                className={`my-2 flex cursor-pointer select-none items-center justify-between rounded border border-primary-500 px-4 py-2 text-lg hover:bg-dark-200 md:text-xl ${
+                  operationsAccordion === 1 ? "text-primary-500" : ""
                 }`}
-                key={s}
-                onClick={() => setStore(s)}
+                onClick={() =>
+                  setOperationsAccordion(operationsAccordion === 1 ? 0 : 1)
+                }
               >
-                {s}
-              </p>
-            ))}
+                <p>{`Contributors ${contributors.length} / 5`}</p>
+                {operationsAccordion === 1 ? (
+                  <MinusIcon className="h-6 w-6" />
+                ) : (
+                  <ChevronDownIcon className="h-6 w-6" />
+                )}
+              </div>
+            ) : (
+              <></>
+            )}
+            {operationsAccordion === 1 ? (
+              <div className="my-2 space-y-4 px-4">
+                {contributors.length > 0 ? (
+                  <>
+                    {contributors.map((user) => (
+                      <div
+                        key={user.username}
+                        className="flex items-center justify-around"
+                      >
+                        <p>{user.username}</p>
+                        <form
+                          action={async () =>
+                            removeContributor(budget.id, user.id)
+                          }
+                        >
+                          <button>
+                            <TrashIcon className="h-5 w-5 cursor-pointer text-red-500 hover:text-primary-500" />
+                          </button>
+                        </form>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <></>
+                )}
+              </div>
+            ) : (
+              <></>
+            )}
+
+            {/* Contributor Form */}
+            <div
+              className={`my-2 flex cursor-pointer select-none items-center justify-between rounded border border-primary-500 px-4 py-2 text-lg hover:bg-dark-200 md:text-xl ${
+                operationsAccordion === 2 ? "text-primary-500" : ""
+              }`}
+              onClick={() =>
+                setOperationsAccordion(operationsAccordion === 2 ? 0 : 2)
+              }
+            >
+              <p>Invite a user</p>
+              {operationsAccordion === 2 ? (
+                <MinusIcon className="h-6 w-6" />
+              ) : (
+                <ChevronDownIcon className="h-6 w-6" />
+              )}
+            </div>
+            {operationsAccordion === 2 ? (
+              <form
+                action={inviteDispatch}
+                autoComplete="off"
+                noValidate
+                className="my-2 px-4"
+              >
+                {!showInv ? (
+                  <Input
+                    autoComplete="off"
+                    placeholder="user@example.com"
+                    label="Email or Username"
+                    name="identifier"
+                    id="identifier"
+                    errors={
+                      inviteResponse.msg && !inviteResponse.success
+                        ? [inviteResponse.msg]
+                        : []
+                    }
+                    required
+                  />
+                ) : (
+                  <p className="text-center">
+                    An invite was sent to{" "}
+                    <span className="text-primary-500">
+                      {inviteResponse.msg}
+                    </span>
+                  </p>
+                )}
+              </form>
+            ) : (
+              <></>
+            )}
+
+            {/* Delete Budget */}
+            <div
+              className={`my-2 flex cursor-pointer select-none items-center justify-between rounded border border-primary-500 px-4 py-2 text-lg hover:bg-dark-200 md:text-xl ${
+                operationsAccordion === 3 ? "text-primary-500" : ""
+              }`}
+              onClick={() =>
+                setOperationsAccordion(operationsAccordion === 3 ? 0 : 3)
+              }
+            >
+              <p>Delete budget</p>
+              {operationsAccordion === 3 ? (
+                <MinusIcon className="h-6 w-6" />
+              ) : (
+                <ChevronDownIcon className="h-6 w-6" />
+              )}
+            </div>
+            {operationsAccordion === 3 ? (
+              <div className="my-2 flex w-full justify-around px-4 text-lg md:justify-between md:text-xl">
+                <p className="text-primary-500">Are you sure?</p>
+                <form
+                  action={deleteBudget.bind(null, budget.id)}
+                  className="flex"
+                >
+                  <button>
+                    <TrashIcon className="h-8 w-8 text-primary-500 hover:text-red-500" />
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <></>
+            )}
+
+            {/* Change Budget Name */}
+            <div
+              className={`my-2 flex cursor-pointer select-none items-center justify-between rounded border border-primary-500 px-4 py-2 text-lg hover:bg-dark-200 md:text-xl ${
+                operationsAccordion === 4 ? "text-primary-500" : ""
+              }`}
+              onClick={() =>
+                setOperationsAccordion(operationsAccordion === 4 ? 0 : 4)
+              }
+            >
+              <p>Change budget name</p>
+              {operationsAccordion === 4 ? (
+                <MinusIcon className="h-6 w-6" />
+              ) : (
+                <ChevronDownIcon className="h-6 w-6" />
+              )}
+            </div>
+            {operationsAccordion === 4 ? (
+              <form
+                autoComplete="off"
+                action={() => {
+                  const parsedInput = budgetSchema.safeParse(budgetName.trim());
+                  if (parsedInput.success)
+                    budgetNameDispatch(budgetName.trim());
+                  else
+                    setBudgetNameErrors(parsedInput.error.flatten().formErrors);
+                }}
+                noValidate
+                className="my-2 px-4"
+              >
+                <Input
+                  autoComplete="off"
+                  placeholder="Budget name"
+                  errors={
+                    budgetNameResponse.msg
+                      ? [...budgetNameErrors, budgetNameResponse.msg]
+                      : budgetNameErrors
+                  }
+                  value={budgetName}
+                  label="New name"
+                  id="budget"
+                  type="text"
+                  required
+                  divClass="min-h-[95px]"
+                  onChange={(e) => {
+                    const inputText = e.target.value;
+                    if (
+                      budgetNameErrors.length > 0 &&
+                      budgetSchema.safeParse(inputText.trim()).success
+                    )
+                      setBudgetNameErrors([]);
+                    setBudgetName(inputText);
+                  }}
+                />
+              </form>
+            ) : (
+              <></>
+            )}
           </div>
         ) : (
-          <></>
+          //
+          //
+          // Contributor Operations
+          <div className="mt-8 flex flex-col px-2 text-lg md:w-1/2 md:justify-around md:px-8 md:text-xl xl:w-full">
+            <h1 className="my-8 flex select-none items-center justify-between ">
+              <span className="text-primary-500">Budget owner :</span>
+              <span>{budget.owner.username}</span>
+            </h1>
+            <LeaveBudgetForm budgetID={budget.id} />
+          </div>
         )}
-        <Input
-          autoComplete="off"
-          label="Store"
-          placeholder="store"
-          id="store"
-          name="store"
-          type="text"
-          required
-          value={store}
-          onChange={(e) => {
-            const input = e.target.value.trim();
-            if (errors.store && userSchema.safeParse(input).success)
-              errors.store = undefined;
-            setStore(input);
-          }}
-          errors={errors.store}
-        />
-
-        <Input
-          min={1}
-          max={1000000}
-          step={0.01}
-          autoComplete="off"
-          label="Amount"
-          placeholder="0 - 999,999"
-          id="amount"
-          name="amount"
-          type="number"
-          inputMode="decimal"
-          required
-          value={amount === 0 ? "" : amount}
-          onChange={(e) => {
-            const input = e.target.value;
-            if (/^[0-9]{0,7}(\.[0-9]{0,2})?$/.test(input)) {
-              if (
-                errors.amount &&
-                amountSchema.safeParse(Number(input)).success
-              )
-                errors.amount = undefined;
-              setAmount(Number(input));
-            }
-          }}
-          errors={errors.amount}
-        />
-        <button className="btn">Submit</button>
-      </form>
+      </div>
     </>
   );
 }

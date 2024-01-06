@@ -24,6 +24,9 @@ export default function LoginPage() {
             label="Email or Username"
             name="identifier"
             id="identifier"
+            onChange={(e) => {
+              e.target.value = e.target.value.trim();
+            }}
             required
           />
           <Input
