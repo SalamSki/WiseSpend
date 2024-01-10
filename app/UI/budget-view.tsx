@@ -663,7 +663,7 @@ export default function BudgetView({
             e.preventDefault();
             const payload = {
               date: new Date(date),
-              store,
+              store: store.trim(),
               amount: Number(amount),
             };
             const parsedFields = z
@@ -715,7 +715,10 @@ export default function BudgetView({
             value={store}
             onChange={(e) => {
               const input = e.target.value;
-              if (purcahseErrors.store && userSchema.safeParse(input).success)
+              if (
+                purcahseErrors.store &&
+                userSchema.safeParse(input.trim()).success
+              )
                 purcahseErrors.store = undefined;
               setStore(input);
             }}
