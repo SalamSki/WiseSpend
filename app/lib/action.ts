@@ -380,7 +380,7 @@ export async function changeBudgetName(
   const session = await auth();
   if (!session?.user?.id) return { success: false, msg: "Not signed in!" };
 
-  const parsedInput = budgetSchema.safeParse(input);
+  const parsedInput = budgetSchema.safeParse(input.trim());
   if (!parsedInput.success) return { success: false, msg: "Invalid Input!" };
 
   const budgetName = parsedInput.data;
@@ -454,6 +454,7 @@ export async function addEntry(
     !allowedUsers?.contributors.map((user) => user.id).includes(session.user.id)
   )
     return { success: false, msg: "Action not permitted!" };
+  formData.store = formData.store.trim();
   const parsedFields = z
     .object({
       date: dateSchema,
