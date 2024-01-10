@@ -691,7 +691,7 @@ export default function BudgetView({
             >
               {stores.map((s) => (
                 <p
-                  className={`cursor-pointer rounded-full bg-dark-200 px-4 py-2 hover:bg-dark-300 ${
+                  className={`min-w-fit cursor-pointer rounded-full bg-dark-200 px-4 py-2 hover:bg-dark-300 ${
                     store === s ? "text-primary-500" : ""
                   }`}
                   key={s}
