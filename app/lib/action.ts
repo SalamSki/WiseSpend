@@ -457,7 +457,7 @@ export async function addEntry(
   const parsedFields = z
     .object({
       date: dateSchema,
-      store: userSchema,
+      store: budgetSchema,
       amount: amountSchema,
     })
     .safeParse(formData);
