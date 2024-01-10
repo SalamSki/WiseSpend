@@ -63,3 +63,7 @@ input::-webkit-calendar-picker-indicator{
   filter: invert(100%);
   cursor: pointer;
 }
+
+.scrollgutter{
+  scrollbar-gutter: stable;
+}

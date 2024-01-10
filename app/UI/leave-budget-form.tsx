@@ -11,7 +11,7 @@ export default function LeaveBudgetForm({ budgetID }: { budgetID: string }) {
     <div className="my-2 flex items-center justify-center">
       {wantToLeave ? (
         <div className="flex w-full justify-between">
-          <p className="text-primary-500">Are you sure?</p>
+          <p>Are you sure?</p>
           <div className="flex items-center justify-center space-x-4">
             <form action={leaveBudget.bind(null, budgetID)} className="flex">
               <button>

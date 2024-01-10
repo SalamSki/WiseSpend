@@ -20,13 +20,14 @@ import { useFormState } from "react-dom";
 import {
   addEntry,
   changeBudgetName,
-  deleteBudget,
   deleteEntries,
   inviteUserToBudget,
   removeContributor,
 } from "../lib/action";
 import { Purchace } from "../main/[budgetID]/page";
 import {
+  ArrowLongDownIcon,
+  ArrowLongUpIcon,
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -38,6 +39,8 @@ import {
 import React from "react";
 import clsx from "clsx";
 import LeaveBudgetForm from "./leave-budget-form";
+import DeleteBudgetForm from "./delete-budget";
+import RemoveContributor from "./remove-contributor";
 
 type Errors = {
   date?: string[] | undefined;
@@ -82,7 +85,6 @@ export default function BudgetView({
     setDate(newDateAsArray.join("-"));
     setOpenMonth("");
   };
-
   //Month Accordion
   const [openMonth, setOpenMonth] = useState("");
 
@@ -95,9 +97,25 @@ export default function BudgetView({
       yearFilterdContent.map((entry) => monthOrder[entry.date.getMonth()]),
     ),
   ].sort((a, b) => monthOrder.indexOf(b) - monthOrder.indexOf(a));
-  const selectedContent = yearFilterdContent.filter(
-    (entry) => monthOrder[entry.date.getMonth()] === openMonth,
-  );
+  const [sortUpon, setSortUpon] = useState({ orderBy: 0, isASC: true });
+  const selectedContent = yearFilterdContent
+    .filter((entry) => monthOrder[entry.date.getMonth()] === openMonth)
+    .sort((a, b) => {
+      switch (sortUpon.orderBy) {
+        case 0:
+          return sortUpon.isASC
+            ? a.date.getTime() - b.date.getTime()
+            : b.date.getTime() - a.date.getTime();
+        case 1:
+          return sortUpon.isASC
+            ? a.store.localeCompare(b.store)
+            : b.store.localeCompare(a.store);
+        case 2:
+          return sortUpon.isASC ? a.amount - b.amount : b.amount - a.amount;
+        default:
+          return 0;
+      }
+    });
 
   //Year Slider & Delete
   useEffect(() => {
@@ -120,24 +138,26 @@ export default function BudgetView({
       setSelectedYear(
         years.length > 0 ? years[years.length - 1] : today.getFullYear(),
       );
-      setDate(todayString);
       setOpenMonth("");
       setYearIndex(0);
     }
   }, [yearIndex, selectedYear, years, yearWindowSize]);
+  useEffect(() => {
+    setLoadingSlider(false);
+  }, []);
 
   //Scroll On Month Load
-  const scrollContent = useRef(null);
+  const scrollMonth = useRef(null);
   useEffect(() => {
-    const scrollToElement = scrollContent.current;
-    if (scrollToElement)
+    const scrollToElement = scrollMonth.current;
+    if (scrollToElement) {
       (scrollToElement as HTMLParagraphElement).scrollIntoView({
         behavior: "smooth",
         block: "nearest",
       });
-    scrollContent.current = null;
-    setLoadingSlider(false);
-  }, []);
+      scrollMonth.current = null;
+    }
+  }, [openMonth]);
 
   //CheckBox
   const purcahseIDs = selectedContent.map((entry) => entry.id);
@@ -154,7 +174,7 @@ export default function BudgetView({
   const [date, setDate] = useState(todayString);
   const [store, setStore] = useState("");
   const [amount, setAmount] = useState<number | string>("");
-  const stores = [...new Set(entries.map((entry) => entry.store))];
+  const stores = [...new Set(entries.map((entry) => entry.store).sort())];
   const [purchaseResponse, purchaseDispatch] = useFormState(
     addEntry.bind(null, budget.id),
     inital_res,
@@ -214,6 +234,7 @@ export default function BudgetView({
     if (inviteResponse.success) {
       setShowInv(true);
       setTimeout(() => {
+        setOperationsAccordion(0);
         setShowInv(false);
         inviteResponse.success = false;
         inviteResponse.msg = "";
@@ -238,9 +259,21 @@ export default function BudgetView({
     }
   }, [budgetNameResponse]);
 
+  const scrollOwnerOperation = useRef(null);
+  useEffect(() => {
+    const scrollToElement = scrollOwnerOperation.current;
+    if (scrollToElement) {
+      (scrollToElement as HTMLParagraphElement).scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+      scrollOwnerOperation.current = null;
+    }
+  }, [operationsAccordion]);
+
   return (
     <>
-      <div className="grow xl:overflow-y-auto">
+      <div className="scrollgutter grow xl:overflow-y-auto">
         {/* Header */}
         <h1 className="flex items-center justify-center space-x-4 py-8 text-center text-2xl sm:p-8 md:text-4xl">
           <ChartPieIcon className="h-8 w-8" />
@@ -355,14 +388,94 @@ export default function BudgetView({
                     >
                       {/* Table Header */}
                       <p
-                        className={`p-4 text-primary-500 ${
+                        onClick={() => {
+                          if (selectedContent.length > 1)
+                            setSortUpon({
+                              orderBy: 0,
+                              isASC:
+                                sortUpon.orderBy === 0 ? !sortUpon.isASC : true,
+                            });
+                        }}
+                        className={`flex items-center justify-center space-x-2 p-4 text-primary-500 ${
                           checkBoxOn ? "col-start-2" : ""
+                        } ${
+                          selectedContent.length > 1
+                            ? "cursor-pointer select-none"
+                            : ""
                         }`}
                       >
-                        Date
+                        <span>Date</span>
+                        {sortUpon.orderBy === 0 &&
+                        selectedContent.length > 1 ? (
+                          <>
+                            {sortUpon.isASC ? (
+                              <ArrowLongDownIcon className="h-4 w-4" />
+                            ) : (
+                              <ArrowLongUpIcon className="h-4 w-4" />
+                            )}
+                          </>
+                        ) : (
+                          <></>
+                        )}
                       </p>
-                      <p className="p-4 text-primary-500">Store</p>
-                      <p className="p-4 text-primary-500">Amount</p>
+                      <p
+                        onClick={() => {
+                          if (selectedContent.length > 1)
+                            setSortUpon({
+                              orderBy: 1,
+                              isASC:
+                                sortUpon.orderBy === 1 ? !sortUpon.isASC : true,
+                            });
+                        }}
+                        className={`flex items-center justify-center space-x-2 p-4 text-primary-500 ${
+                          selectedContent.length > 1
+                            ? "cursor-pointer select-none"
+                            : ""
+                        }`}
+                      >
+                        <span>Store</span>
+                        {sortUpon.orderBy === 1 &&
+                        selectedContent.length > 1 ? (
+                          <>
+                            {sortUpon.isASC ? (
+                              <ArrowLongDownIcon className="h-4 w-4" />
+                            ) : (
+                              <ArrowLongUpIcon className="h-4 w-4" />
+                            )}
+                          </>
+                        ) : (
+                          <></>
+                        )}
+                      </p>
+                      <p
+                        onClick={() => {
+                          if (selectedContent.length > 1)
+                            setSortUpon({
+                              orderBy: 2,
+                              isASC:
+                                sortUpon.orderBy === 2 ? !sortUpon.isASC : true,
+                            });
+                        }}
+                        className={`flex items-center justify-center space-x-2 p-4 text-primary-500 ${
+                          selectedContent.length > 1
+                            ? "cursor-pointer select-none"
+                            : ""
+                        }`}
+                      >
+                        <span>Amount</span>
+                        {sortUpon.orderBy === 2 &&
+                        selectedContent.length > 1 ? (
+                          <>
+                            {sortUpon.isASC ? (
+                              <ArrowLongDownIcon className="h-4 w-4" />
+                            ) : (
+                              <ArrowLongUpIcon className="h-4 w-4" />
+                            )}
+                          </>
+                        ) : (
+                          <></>
+                        )}
+                      </p>
                       {/* Table Body */}
                       {selectedContent.map(
                         ({ id, amount, date, store }, index) => (
@@ -448,21 +561,28 @@ export default function BudgetView({
                             />
                           </div>
                           <div
-                            className={`flex items-center justify-evenly space-x-4 ${
+                            className={`flex items-center space-x-4 ${
                               selectedContent.length % 2 === 0
                                 ? "bg-dark-200"
                                 : ""
+                            } ${
+                              selectedPurchases.length !==
+                              selectedContent.length
+                                ? "justify-between"
+                                : "justify-around"
                             }`}
                           >
-                            <XMarkIcon
-                              className="c h-8 w-8 cursor-pointer text-primary-500 hover:text-primary-600"
-                              onClick={() => setCheckBoxOn(false)}
-                            />
+                            {selectedPurchases.length !==
+                            selectedContent.length ? (
+                              <p>Select All</p>
+                            ) : (
+                              <></>
+                            )}
                             <div className="flex items-center justify-center space-x-2">
                               <TrashIcon
                                 className={`h-8 w-8 ${
                                   selectedPurchases.length > 0
-                                    ? "cursor-pointer text-primary-500 hover:text-red-500"
+                                    ? "cursor-pointer text-red-500 hover:text-red-600"
                                     : "text-dark-500"
                                 }`}
                                 onClick={() => {
@@ -476,6 +596,10 @@ export default function BudgetView({
                                 ({selectedPurchases.length})
                               </p>
                             </div>
+                            <XMarkIcon
+                              className="c h-8 w-8 cursor-pointer text-primary-500 hover:text-primary-600"
+                              onClick={() => setCheckBoxOn(false)}
+                            />
                           </div>
                         </>
                       ) : (
@@ -496,7 +620,7 @@ export default function BudgetView({
                         className={`p-4 ${
                           selectedContent.length % 2 === 0 ? "bg-dark-200" : ""
                         }`}
-                        ref={checkBoxOn ? null : scrollContent}
+                        ref={checkBoxOn ? null : scrollMonth}
                       >
                         Total:
                       </p>
@@ -521,7 +645,7 @@ export default function BudgetView({
           //
           //
           // Empty Budget
-          <p className="py-12 text-center text-2xl">
+          <p className="py-12 text-center text-lg">
             <span className="text-primary-500">The budget is empty.</span>
             <br /> Add purchases to track your expenses over time.
           </p>
@@ -529,7 +653,7 @@ export default function BudgetView({
       </div>
 
       {/* Sidepanel */}
-      <div className="flex flex-col md:flex-row xl:w-96 xl:flex-col xl:pt-24">
+      <div className="flex flex-col py-4 max-xl:my-8 md:flex-row xl:w-96 xl:flex-col xl:overflow-y-auto">
         {/* Purchase Form */}
         <form
           autoComplete="off"
@@ -634,12 +758,8 @@ export default function BudgetView({
                           (years.length - yearIndex - 1)),
                     );
                   setSelectedYear(newDate.getFullYear());
+                  setOpenMonth(monthOrder[newDate.getMonth()]);
                 }
-                setOpenMonth(
-                  months.includes(monthOrder[newDate.getMonth()])
-                    ? monthOrder[newDate.getMonth()]
-                    : "",
-                );
                 setCheckBoxOn(false);
               }
               setDate(input);
@@ -685,7 +805,7 @@ export default function BudgetView({
             {/* Contributors List */}
             {contributors.length > 0 ? (
               <div
-                className={`my-2 flex cursor-pointer select-none items-center justify-between rounded border border-primary-500 px-4 py-2 text-lg hover:bg-dark-200 md:text-xl ${
+                className={`my-2 flex cursor-pointer select-none items-center justify-between rounded border border-primary-500 px-4 py-2 hover:bg-dark-200 ${
                   operationsAccordion === 1 ? "text-primary-500" : ""
                 }`}
                 onClick={() =>
@@ -703,25 +823,15 @@ export default function BudgetView({
               <></>
             )}
             {operationsAccordion === 1 ? (
-              <div className="my-2 space-y-4 px-4">
+              <div ref={scrollOwnerOperation} className="my-2 space-y-4">
                 {contributors.length > 0 ? (
                   <>
                     {contributors.map((user) => (
-                      <div
+                      <RemoveContributor
                         key={user.username}
-                        className="flex items-center justify-around"
-                      >
-                        <p>{user.username}</p>
-                        <form
-                          action={async () =>
-                            removeContributor(budget.id, user.id)
-                          }
-                        >
-                          <button>
-                            <TrashIcon className="h-5 w-5 cursor-pointer text-red-500 hover:text-primary-500" />
-                          </button>
-                        </form>
-                      </div>
+                        budgetID={budget.id}
+                        user={user}
+                      />
                     ))}
                   </>
                 ) : (
@@ -734,7 +844,7 @@ export default function BudgetView({
 
             {/* Contributor Form */}
             <div
-              className={`my-2 flex cursor-pointer select-none items-center justify-between rounded border border-primary-500 px-4 py-2 text-lg hover:bg-dark-200 md:text-xl ${
+              className={`my-2 flex cursor-pointer select-none items-center justify-between rounded border border-primary-500 px-4 py-2 hover:bg-dark-200 ${
                 operationsAccordion === 2 ? "text-primary-500" : ""
               }`}
               onClick={() =>
@@ -750,6 +860,7 @@ export default function BudgetView({
             </div>
             {operationsAccordion === 2 ? (
               <form
+                ref={scrollOwnerOperation}
                 action={inviteDispatch}
                 autoComplete="off"
                 noValidate
@@ -784,7 +895,7 @@ export default function BudgetView({
 
             {/* Delete Budget */}
             <div
-              className={`my-2 flex cursor-pointer select-none items-center justify-between rounded border border-primary-500 px-4 py-2 text-lg hover:bg-dark-200 md:text-xl ${
+              className={`my-2 flex cursor-pointer select-none items-center justify-between rounded border border-primary-500 px-4 py-2 hover:bg-dark-200 ${
                 operationsAccordion === 3 ? "text-primary-500" : ""
               }`}
               onClick={() =>
@@ -799,24 +910,17 @@ export default function BudgetView({
               )}
             </div>
             {operationsAccordion === 3 ? (
-              <div className="my-2 flex w-full justify-around px-4 text-lg md:justify-between md:text-xl">
-                <p className="text-primary-500">Are you sure?</p>
-                <form
-                  action={deleteBudget.bind(null, budget.id)}
-                  className="flex"
-                >
-                  <button>
-                    <TrashIcon className="h-8 w-8 text-primary-500 hover:text-red-500" />
-                  </button>
-                </form>
-              </div>
+              <DeleteBudgetForm
+                scrollRef={scrollOwnerOperation}
+                budgetID={budget.id}
+              />
             ) : (
               <></>
             )}
 
             {/* Change Budget Name */}
             <div
-              className={`my-2 flex cursor-pointer select-none items-center justify-between rounded border border-primary-500 px-4 py-2 text-lg hover:bg-dark-200 md:text-xl ${
+              className={`my-2 flex cursor-pointer select-none items-center justify-between rounded border border-primary-500 px-4 py-2 hover:bg-dark-200 ${
                 operationsAccordion === 4 ? "text-primary-500" : ""
               }`}
               onClick={() =>
@@ -832,6 +936,7 @@ export default function BudgetView({
             </div>
             {operationsAccordion === 4 ? (
               <form
+                ref={scrollOwnerOperation}
                 autoComplete="off"
                 action={() => {
                   const parsedInput = budgetSchema.safeParse(budgetName.trim());
@@ -876,7 +981,7 @@ export default function BudgetView({
           //
           //
           // Contributor Operations
-          <div className="mt-8 flex flex-col px-2 text-lg md:w-1/2 md:justify-around md:px-8 md:text-xl xl:w-full">
+          <div className="mt-8 flex flex-col px-2 md:w-1/2 md:justify-around md:px-8 xl:w-full">
             <h1 className="my-8 flex select-none items-center justify-between ">
               <span className="text-primary-500">Budget owner :</span>
               <span>{budget.owner.username}</span>

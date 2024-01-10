@@ -23,13 +23,13 @@ export function dateToString(date: Date) {
 
 export const startDate = new Date("2000-01-01");
 export const today = new Date();
-export const todayString = dateToString(new Date());
-
+export const todayString = `${today.getFullYear()}-${String(
+  today.getMonth() + 1,
+).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 export const inital_res = {
   success: false,
   msg: "",
 };
-
 
 export const monthOrder = [
   "January",

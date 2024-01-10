@@ -42,7 +42,7 @@ export default async function BudgetPage({
   ).map((entry) => entry.year);
 
   return (
-    <div className="flex h-full w-full flex-col max-md:space-y-12 xl:flex-row">
+    <div className="flex h-full w-full flex-col xl:flex-row">
       <BudgetView
         budget={{ id, name, ownerId, owner }}
         entries={mappedEntries}

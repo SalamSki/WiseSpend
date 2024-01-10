@@ -23,6 +23,10 @@ export type State = {
   msg?: string;
 };
 
+export async function revalidateURL(url: string) {
+  revalidatePath(url);
+}
+
 export async function leaveBudget(budgetID: string) {
   const session = await auth();
   if (!session?.user?.id) return null;
@@ -190,7 +194,7 @@ export async function inviteUserToBudget(
   formData: FormData,
 ) {
   const session = await auth();
-  if (!session?.user?.id) return { msg: "Not signed in!", success: false };
+  if (!session?.user?.id) return { success: false, msg: "Not signed in!" };
 
   //Check if current user is owner of budget.
   const budget = await prisma.budget.findUnique({
@@ -206,7 +210,7 @@ export async function inviteUserToBudget(
     },
   });
   if (budget?.ownerId !== session.user.id || budget.contributors.length >= 5)
-    return { msg: "Action not permitted!", success: false };
+    return { success: false, msg: "Action not permitted!" };
 
   const input = Object.fromEntries(formData);
 
@@ -219,7 +223,7 @@ export async function inviteUserToBudget(
     type = 1;
     parsedIdentifier = userSchema.safeParse(input.identifier);
     if (!parsedIdentifier.success)
-      return { msg: "No such user.", success: false };
+      return { success: false, msg: "No such user." };
   }
 
   const identifier = parsedIdentifier.data;
@@ -247,13 +251,23 @@ export async function inviteUserToBudget(
       },
     });
   }
-  if (!invited) return { msg: "No such user.", success: false };
+  if (!invited) return { success: false, msg: "No such user." };
 
   if (invited.id === session.user.id)
-    return { msg: "Can't invite yourself...", success: false };
+    return { success: false, msg: "Can't invite yourself..." };
 
   if (budget.contributors.map((user) => user.id).includes(invited.id))
-    return { msg: "User already has access.", success: false };
+    return { success: false, msg: "User already has access." };
+
+  const existingInvite = await prisma.invite.findUnique({
+    where: {
+      invitedId_budgetId: {
+        budgetId: budgetID,
+        invitedId: invited.id,
+      },
+    },
+  });
+  if (existingInvite) return { success: false, msg: "User already invited." };
 
   await prisma.invite.create({
     data: {
@@ -262,15 +276,25 @@ export async function inviteUserToBudget(
       invited: { connect: { id: invited.id } },
     },
   });
-  return { msg: invited.username, success: true };
+  return { success: true, msg: invited.username };
 }
 
 export async function getBudget(budgetID: string) {
   const session = await auth();
-  if (!session) return null;
+  if (!session?.user?.id) return null;
   return await prisma.budget.findUnique({
     where: {
       id: budgetID,
+      OR: [
+        { ownerId: session.user.id },
+        {
+          contributors: {
+            some: {
+              id: session.user.id,
+            },
+          },
+        },
+      ],
     },
     include: {
       entries: {
@@ -322,15 +346,12 @@ export async function getBudgets() {
   });
 }
 
-export async function createBudget(
-  prevState: string | undefined,
-  input: string,
-) {
+export async function createBudget(prevState: State, input: string) {
   const session = await auth();
-  if (!session?.user?.id) return "Not signed in!";
+  if (!session?.user?.id) return { success: false, msg: "Not signed in!" };
 
   const parsedInput = budgetSchema.safeParse(input);
-  if (!parsedInput.success) return "Invalid Input!";
+  if (!parsedInput.success) return { success: false, msg: "Invalid Input!" };
 
   const budgetName = parsedInput.data;
 
@@ -341,13 +362,14 @@ export async function createBudget(
         name: { equals: budgetName, mode: "insensitive" },
       },
     })) > 0;
-  if (budgetExists) return "Name taken!";
+  if (budgetExists) return { success: false, msg: "Name taken!" };
 
-  const createdBudget = await prisma.budget.create({
+  await prisma.budget.create({
     data: { name: budgetName, ownerId: session.user.id },
   });
 
-  redirect(`/main/${createdBudget.id}`);
+  revalidatePath(`/main`);
+  return { success: true };
 }
 
 export async function changeBudgetName(
@@ -368,6 +390,9 @@ export async function changeBudgetName(
       where: {
         ownerId: session.user.id,
         name: { equals: budgetName, mode: "insensitive" },
+        id: {
+          not: budgetID,
+        },
       },
     })) > 0;
   if (budgetExists) return { success: false, msg: "Name taken!" };
