@@ -726,6 +726,33 @@ export default function BudgetView({
           />
 
           <Input
+            min={1}
+            max={1000000}
+            step={0.01}
+            autoComplete="off"
+            label="Amount"
+            placeholder="0 - 999,999"
+            id="amount"
+            name="amount"
+            type="number"
+            inputMode="decimal"
+            required
+            value={amount === 0 ? "" : amount}
+            onChange={(e) => {
+              const input = e.target.value;
+              if (/^[0-9]{0,7}(\.[0-9]{0,2})?$/.test(input)) {
+                if (
+                  purcahseErrors.amount &&
+                  amountSchema.safeParse(Number(input)).success
+                )
+                  purcahseErrors.amount = undefined;
+                setAmount(Number(input));
+              }
+            }}
+            errors={purcahseErrors.amount}
+          />
+
+          <Input
             min={"2000-01-01"}
             max={todayString}
             className="pr-0"
@@ -768,33 +795,6 @@ export default function BudgetView({
               setDate(input);
             }}
             errors={purcahseErrors.date}
-          />
-
-          <Input
-            min={1}
-            max={1000000}
-            step={0.01}
-            autoComplete="off"
-            label="Amount"
-            placeholder="0 - 999,999"
-            id="amount"
-            name="amount"
-            type="number"
-            inputMode="decimal"
-            required
-            value={amount === 0 ? "" : amount}
-            onChange={(e) => {
-              const input = e.target.value;
-              if (/^[0-9]{0,7}(\.[0-9]{0,2})?$/.test(input)) {
-                if (
-                  purcahseErrors.amount &&
-                  amountSchema.safeParse(Number(input)).success
-                )
-                  purcahseErrors.amount = undefined;
-                setAmount(Number(input));
-              }
-            }}
-            errors={purcahseErrors.amount}
           />
           <button className="btn">Submit</button>
         </form>
