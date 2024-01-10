@@ -273,7 +273,7 @@ export default function BudgetView({
 
   return (
     <>
-      <div className="scrollgutter grow xl:overflow-y-auto">
+      <div className="scrollgutter grow">
         {/* Header */}
         <h1 className="flex items-center justify-center space-x-4 py-8 text-center text-2xl sm:p-8 md:text-4xl">
           <ChartPieIcon className="h-8 w-8" />
@@ -282,7 +282,7 @@ export default function BudgetView({
 
         {/* Mainpanel */}
         {years.length > 0 ? (
-          <div className="flex flex-col items-center">
+          <div className="flex max-h-[calc(100%-5rem)] flex-col items-center">
             {/* Year slider */}
             {loadingSlider ? (
               <p className="flex min-h-[40px] w-full items-center justify-center text-primary-500">
@@ -350,7 +350,7 @@ export default function BudgetView({
             )}
 
             {/* Year Content */}
-            <div className="flex w-full flex-col md:p-8">
+            <div className="flex w-full flex-col md:p-8 xl:overflow-y-auto">
               {months.map((month: string) => (
                 <div key={month}>
                   {/* Month Header */}
