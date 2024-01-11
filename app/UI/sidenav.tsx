@@ -25,7 +25,7 @@ export default function SideNav({
   invites: number;
 }) {
   const path = usePathname();
-  const refreshRateInSec = 60;
+  const refreshRateInSec = 5;
   const [refreshCounter, setRefreshCounter] = useState(refreshRateInSec);
   useEffect(() => {
     const interval = setInterval(() => {
