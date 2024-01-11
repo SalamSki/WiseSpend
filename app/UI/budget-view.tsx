@@ -174,7 +174,12 @@ export default function BudgetView({
   const [date, setDate] = useState(todayString);
   const [store, setStore] = useState("");
   const [amount, setAmount] = useState<number | string>("");
-  const stores = [...new Set(entries.map((entry) => entry.store).sort())];
+  const stores = [...new Set(entries.map((entry) => entry.store))].sort(
+    (a, b) =>
+      entries.filter((entry) => entry.store === b).length -
+      entries.filter((entry) => entry.store === a).length,
+  );
+
   const [purchaseResponse, purchaseDispatch] = useFormState(
     addEntry.bind(null, budget.id),
     inital_res,
