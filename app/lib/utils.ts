@@ -14,18 +14,12 @@ export default otpAsciiChars;
 if (process.env.NODE_ENV !== "production")
   globalForOtpAsciiChars.otpAsciiChars = otpAsciiChars;
 
-export function dateToString(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+export const startDate = new Date("2000-01-01");
+export const dateToString = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
     2,
     "0",
-  )}-${String(date.getDay()).padStart(2, "0")}`;
-}
-
-export const startDate = new Date("2000-01-01");
-export const today = new Date();
-export const todayString = `${today.getFullYear()}-${String(
-  today.getMonth() + 1,
-).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  )}-${String(date.getDate()).padStart(2, "0")}`;
 export const inital_res = {
   success: false,
   msg: "",
