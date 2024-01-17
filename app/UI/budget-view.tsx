@@ -3,11 +3,10 @@ import { ChartPieIcon } from "@heroicons/react/24/solid";
 import { useEffect, useRef, useState } from "react";
 import { Input } from "./input";
 import {
+  dateToString,
   inital_res,
   montOrderShort,
   monthOrder,
-  today,
-  todayString,
 } from "../lib/utils";
 import { z } from "zod";
 import {
@@ -73,7 +72,7 @@ export default function BudgetView({
 }) {
   //year slider
   const [selectedYear, setSelectedYear] = useState(
-    years.length > 0 ? years[years.length - 1] : today.getFullYear(),
+    years.length > 0 ? years[years.length - 1] : new Date().getFullYear(),
   );
   const [yearIndex, setYearIndex] = useState(0);
   const [yearWindowSize, setYearWindowSize] = useState(5);
@@ -136,7 +135,7 @@ export default function BudgetView({
     //reset on year delete
     if (!years.includes(selectedYear)) {
       setSelectedYear(
-        years.length > 0 ? years[years.length - 1] : today.getFullYear(),
+        years.length > 0 ? years[years.length - 1] : new Date().getFullYear(),
       );
       setOpenMonth("");
       setYearIndex(0);
@@ -171,7 +170,7 @@ export default function BudgetView({
   }, [checkBoxOn]);
 
   //purcahse form
-  const [date, setDate] = useState(todayString);
+  const [date, setDate] = useState(dateToString(new Date()));
   const [store, setStore] = useState("");
   const [amount, setAmount] = useState<number | string>("");
   const stores = [...new Set(entries.map((entry) => entry.store))].sort(
@@ -759,7 +758,7 @@ export default function BudgetView({
 
           <Input
             min={"2000-01-01"}
-            max={todayString}
+            max={dateToString(new Date())}
             className="pr-0"
             autoComplete="off"
             label="Date"
