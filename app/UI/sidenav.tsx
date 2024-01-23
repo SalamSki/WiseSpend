@@ -9,8 +9,9 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logout } from "../lib/authenticate";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { revalidateURL } from "../lib/action";
+import { socket } from "../lib/socket";
 
 const links = [
   { name: "Budgets", href: ["/", "/main"], icon: ChartPieIcon },
@@ -20,23 +21,20 @@ const links = [
 export default function SideNav({
   verified,
   invites,
+  myID,
 }: {
   verified: boolean;
   invites: number;
+  myID: string;
 }) {
   const path = usePathname();
-  const refreshRateInSec = 5;
-  const [refreshCounter, setRefreshCounter] = useState(refreshRateInSec);
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (refreshCounter > 0) setRefreshCounter(refreshCounter - 1);
-      else {
-        setRefreshCounter(refreshRateInSec);
-        revalidateURL(path);
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [refreshCounter, path]);
+    socket.connect();
+    socket.emit("join", myID);
+    socket.on("update", (_) => {
+      revalidateURL(path);
+    });
+  }, [myID, path]);
 
   return (
     <header className="flex w-full flex-none flex-col px-4 py-2 max-md:border-b max-md:border-dark-300 md:h-full md:w-64 md:py-12">

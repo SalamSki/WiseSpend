@@ -17,6 +17,7 @@ import { z } from "zod";
 import bcrypt from "bcrypt";
 import { redirect } from "next/navigation";
 import { monthOrder } from "./utils";
+import axios from "axios";
 
 export type State = {
   success: boolean;
@@ -44,7 +45,7 @@ export async function leaveBudget(budgetID: string) {
   });
   if (!user || user.budgets.length !== 1) return null;
 
-  await prisma.budget.update({
+  const budget = await prisma.budget.update({
     where: {
       id: user.budgets[0].id,
     },
@@ -55,7 +56,16 @@ export async function leaveBudget(budgetID: string) {
         },
       },
     },
+    select: {
+      ownerId: true,
+    },
   });
+
+  axios
+    .post(process.env.SOCKET_URL || "", {
+      rooms: [budget.ownerId],
+    })
+    .catch();
 
   redirect("/main");
 }
@@ -75,7 +85,7 @@ export async function acceptInvite(budgetID: string) {
   if (!invite || new Date().getTime() - invite.invDate.getTime() > 259200000)
     return null;
 
-  await prisma.budget.update({
+  const budget = await prisma.budget.update({
     where: {
       id: invite.budgetId,
     },
@@ -85,6 +95,9 @@ export async function acceptInvite(budgetID: string) {
           id: invite.invitedId,
         },
       },
+    },
+    select: {
+      ownerId: true,
     },
   });
 
@@ -96,6 +109,12 @@ export async function acceptInvite(budgetID: string) {
       },
     },
   });
+
+  axios
+    .post(process.env.SOCKET_URL || "", {
+      rooms: [budget.ownerId],
+    })
+    .catch();
 
   revalidatePath("/account");
   return null;
@@ -120,6 +139,13 @@ export async function rejectInvite(budgetID: string) {
       invitedId_budgetId: {
         budgetId: budgetID,
         invitedId: session.user.id,
+      },
+    },
+    select: {
+      budget: {
+        select: {
+          ownerId: true,
+        },
       },
     },
   });
@@ -185,6 +211,13 @@ export async function removeContributor(
       },
     },
   });
+
+  axios
+    .post(process.env.SOCKET_URL || "", {
+      rooms: [contributorID],
+    })
+    .catch();
+
   revalidatePath(`/main/${budgetID}`);
 }
 
@@ -276,6 +309,13 @@ export async function inviteUserToBudget(
       invited: { connect: { id: invited.id } },
     },
   });
+
+  axios
+    .post(process.env.SOCKET_URL || "", {
+      rooms: [invited.id],
+    })
+    .catch();
+
   return { success: true, msg: invited.username };
 }
 
@@ -397,13 +437,32 @@ export async function changeBudgetName(
     })) > 0;
   if (budgetExists) return { success: false, msg: "Name taken!" };
 
-  await prisma.budget.update({
+  const updatedBudget = await prisma.budget.update({
     where: {
       id: budgetID,
     },
     data: {
       name: budgetName,
     },
+    select: {
+      contributors: {
+        select: {
+          id: true,
+        },
+      },
+      invites: {
+        select: {
+          invitedId: true,
+        },
+      },
+    },
+  });
+
+  axios.post(process.env.SOCKET_URL || "", {
+    rooms: [
+      ...updatedBudget.contributors.map((user) => user.id),
+      ...updatedBudget.invites.map((invite) => invite.invitedId),
+    ],
   });
 
   revalidatePath(`/main/${budgetID}`);
@@ -414,11 +473,30 @@ export async function deleteBudget(budgetID: string) {
   const session = await auth();
   if (!session?.user?.id) return null;
 
-  await prisma.budget.delete({
+  const deletedBudget = await prisma.budget.delete({
     where: {
       id: budgetID,
       ownerId: session.user.id,
     },
+    select: {
+      contributors: {
+        select: {
+          id: true,
+        },
+      },
+      invites: {
+        select: {
+          invitedId: true,
+        },
+      },
+    },
+  });
+
+  axios.post(process.env.SOCKET_URL || "", {
+    rooms: [
+      ...deletedBudget.contributors.map((user) => user.id),
+      ...deletedBudget.invites.map((invite) => invite.invitedId),
+    ],
   });
 
   redirect("/main");
@@ -475,8 +553,30 @@ export async function addEntry(
       date,
       store,
     },
+    select: {
+      budget: {
+        select: {
+          contributors: {
+            select: { id: true },
+          },
+          owner: {
+            select: { id: true },
+          },
+        },
+      },
+    },
   });
+
+  axios
+    .post(process.env.SOCKET_URL || "", {
+      rooms: [
+        allowedUsers.ownerId,
+        ...allowedUsers.contributors.map((user) => user.id),
+      ].filter((id) => id !== session.user?.id),
+    })
+    .catch();
   revalidatePath(`/main/${budgetID}`);
+
   return {
     success: true,
     msg: `${date.getFullYear()}-${monthOrder[date.getMonth()]}`,
@@ -511,6 +611,13 @@ export async function deleteEntries(budgetID: string, IDs: string[]) {
         in: IDs,
       },
     },
+  });
+
+  axios.post(process.env.SOCKET_URL || "", {
+    rooms: [
+      allowedUsers.ownerId,
+      ...allowedUsers.contributors.map((user) => user.id),
+    ].filter((id) => id !== session.user?.id),
   });
 
   revalidatePath(`/main/${budgetID}`);
@@ -550,13 +657,48 @@ export async function changeUsername(prevState: State, input: string) {
     })) > 0;
   if (userNameExists) return { success: false, msg: "Username taken!" };
 
-  await prisma.user.update({
+  const updatedUser = await prisma.user.update({
     where: {
       id: session.user.id,
     },
     data: {
       username: newUsername,
     },
+    select: {
+      budgets: {
+        select: {
+          ownerId: true,
+        },
+      },
+      owend: {
+        select: {
+          contributors: {
+            select: {
+              id: true,
+            },
+          },
+          invites: {
+            select: {
+              invitedId: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  axios.post(process.env.SOCKET_URL || "", {
+    rooms: [
+      ...new Set([
+        ...updatedUser.budgets.map((budget) => budget.ownerId),
+        ...updatedUser.owend
+          .map((ownedBudget) => [
+            ...ownedBudget.contributors.map((user) => user.id),
+            ...ownedBudget.invites.map((invite) => invite.invitedId),
+          ])
+          .flat(),
+      ]),
+    ],
   });
 
   revalidatePath("/account");
@@ -628,7 +770,44 @@ export async function deleteAccount() {
   const session = await auth();
   if (!(session && session.user)) return;
 
-  await prisma.user.delete({ where: { id: session.user.id } });
+  const deletedUser = await prisma.user.delete({
+    where: { id: session.user.id },
+    select: {
+      budgets: {
+        select: {
+          ownerId: true,
+        },
+      },
+      owend: {
+        select: {
+          contributors: {
+            select: {
+              id: true,
+            },
+          },
+          invites: {
+            select: {
+              invitedId: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  axios.post(process.env.SOCKET_URL || "", {
+    rooms: [
+      ...new Set([
+        ...deletedUser.budgets.map((budget) => budget.ownerId),
+        ...deletedUser.owend
+          .map((ownedBudget) => [
+            ...ownedBudget.contributors.map((user) => user.id),
+            ...ownedBudget.invites.map((invite) => invite.invitedId),
+          ])
+          .flat(),
+      ]),
+    ],
+  });
 
   await logout();
 }

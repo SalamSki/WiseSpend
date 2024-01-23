@@ -11,7 +11,11 @@ export default async function Layout({
   const invites = await getInvites();
   return (
     <div className="flex h-screen w-full flex-col md:flex-row">
-      <SideNav verified={verified} invites={invites?.length || 0} />
+      <SideNav
+        verified={verified}
+        invites={invites?.length || 0}
+        myID={user?.id || ""}
+      />
       <main className="flex max-h-screen grow flex-col items-center overflow-y-auto px-4 md:py-12">
         {children}
       </main>
