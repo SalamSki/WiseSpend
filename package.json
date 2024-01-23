@@ -12,6 +12,7 @@
     "@babel/core": "^7.23.7",
     "@heroicons/react": "^2.0.18",
     "@prisma/client": "^5.7.1",
+    "axios": "^1.6.5",
     "bcrypt": "^5.1.1",
     "clsx": "^2.0.0",
     "next": "14.0.4",
@@ -24,6 +25,7 @@
     "react": "^18",
     "react-dom": "^18",
     "react-spinners": "^0.13.8",
+    "socket.io-client": "^4.7.4",
     "webpack": "^5.89.0",
     "zod": "^3.22.4"
   },
