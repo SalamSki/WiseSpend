@@ -24,6 +24,21 @@ export type State = {
   msg?: string;
 };
 
+function fireSocketUpdate(socketIDs: string[]) {
+  if (socketIDs.length > 0)
+    axios.post(
+      process.env.SOCKET_URL || "",
+      {
+        rooms: socketIDs,
+      },
+      {
+        headers: {
+          apikey: process.env.SOCKET_KEY,
+        },
+      },
+    );
+}
+
 export async function revalidateURL(url: string) {
   revalidatePath(url);
 }
@@ -61,11 +76,7 @@ export async function leaveBudget(budgetID: string) {
     },
   });
 
-  axios
-    .post(process.env.SOCKET_URL || "", {
-      rooms: [budget.ownerId],
-    })
-    .catch();
+  fireSocketUpdate([budget.ownerId]);
 
   redirect("/main");
 }
@@ -110,11 +121,7 @@ export async function acceptInvite(budgetID: string) {
     },
   });
 
-  axios
-    .post(process.env.SOCKET_URL || "", {
-      rooms: [budget.ownerId],
-    })
-    .catch();
+  fireSocketUpdate([budget.ownerId]);
 
   revalidatePath("/account");
   return null;
@@ -212,11 +219,7 @@ export async function removeContributor(
     },
   });
 
-  axios
-    .post(process.env.SOCKET_URL || "", {
-      rooms: [contributorID],
-    })
-    .catch();
+  fireSocketUpdate([contributorID]);
 
   revalidatePath(`/main/${budgetID}`);
 }
@@ -310,11 +313,7 @@ export async function inviteUserToBudget(
     },
   });
 
-  axios
-    .post(process.env.SOCKET_URL || "", {
-      rooms: [invited.id],
-    })
-    .catch();
+  fireSocketUpdate([invited.id]);
 
   return { success: true, msg: invited.username };
 }
@@ -458,12 +457,10 @@ export async function changeBudgetName(
     },
   });
 
-  axios.post(process.env.SOCKET_URL || "", {
-    rooms: [
-      ...updatedBudget.contributors.map((user) => user.id),
-      ...updatedBudget.invites.map((invite) => invite.invitedId),
-    ],
-  });
+  fireSocketUpdate([
+    ...updatedBudget.contributors.map((user) => user.id),
+    ...updatedBudget.invites.map((invite) => invite.invitedId),
+  ]);
 
   revalidatePath(`/main/${budgetID}`);
   return { success: true };
@@ -492,12 +489,10 @@ export async function deleteBudget(budgetID: string) {
     },
   });
 
-  axios.post(process.env.SOCKET_URL || "", {
-    rooms: [
-      ...deletedBudget.contributors.map((user) => user.id),
-      ...deletedBudget.invites.map((invite) => invite.invitedId),
-    ],
-  });
+  fireSocketUpdate([
+    ...deletedBudget.contributors.map((user) => user.id),
+    ...deletedBudget.invites.map((invite) => invite.invitedId),
+  ]);
 
   redirect("/main");
 }
@@ -567,14 +562,13 @@ export async function addEntry(
     },
   });
 
-  axios
-    .post(process.env.SOCKET_URL || "", {
-      rooms: [
-        allowedUsers.ownerId,
-        ...allowedUsers.contributors.map((user) => user.id),
-      ].filter((id) => id !== session.user?.id),
-    })
-    .catch();
+  fireSocketUpdate(
+    [
+      allowedUsers.ownerId,
+      ...allowedUsers.contributors.map((user) => user.id),
+    ].filter((id) => id !== session.user?.id),
+  );
+
   revalidatePath(`/main/${budgetID}`);
 
   return {
@@ -613,12 +607,12 @@ export async function deleteEntries(budgetID: string, IDs: string[]) {
     },
   });
 
-  axios.post(process.env.SOCKET_URL || "", {
-    rooms: [
+  fireSocketUpdate(
+    [
       allowedUsers.ownerId,
       ...allowedUsers.contributors.map((user) => user.id),
     ].filter((id) => id !== session.user?.id),
-  });
+  );
 
   revalidatePath(`/main/${budgetID}`);
   return "";
@@ -687,19 +681,17 @@ export async function changeUsername(prevState: State, input: string) {
     },
   });
 
-  axios.post(process.env.SOCKET_URL || "", {
-    rooms: [
-      ...new Set([
-        ...updatedUser.budgets.map((budget) => budget.ownerId),
-        ...updatedUser.owend
-          .map((ownedBudget) => [
-            ...ownedBudget.contributors.map((user) => user.id),
-            ...ownedBudget.invites.map((invite) => invite.invitedId),
-          ])
-          .flat(),
-      ]),
-    ],
-  });
+  fireSocketUpdate([
+    ...new Set([
+      ...updatedUser.budgets.map((budget) => budget.ownerId),
+      ...updatedUser.owend
+        .map((ownedBudget) => [
+          ...ownedBudget.contributors.map((user) => user.id),
+          ...ownedBudget.invites.map((invite) => invite.invitedId),
+        ])
+        .flat(),
+    ]),
+  ]);
 
   revalidatePath("/account");
   return { success: true, msg: "Username changed!" };
@@ -795,19 +787,17 @@ export async function deleteAccount() {
     },
   });
 
-  axios.post(process.env.SOCKET_URL || "", {
-    rooms: [
-      ...new Set([
-        ...deletedUser.budgets.map((budget) => budget.ownerId),
-        ...deletedUser.owend
-          .map((ownedBudget) => [
-            ...ownedBudget.contributors.map((user) => user.id),
-            ...ownedBudget.invites.map((invite) => invite.invitedId),
-          ])
-          .flat(),
-      ]),
-    ],
-  });
+  fireSocketUpdate([
+    ...new Set([
+      ...deletedUser.budgets.map((budget) => budget.ownerId),
+      ...deletedUser.owend
+        .map((ownedBudget) => [
+          ...ownedBudget.contributors.map((user) => user.id),
+          ...ownedBudget.invites.map((invite) => invite.invitedId),
+        ])
+        .flat(),
+    ]),
+  ]);
 
   await logout();
 }

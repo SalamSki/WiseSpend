@@ -29,7 +29,6 @@ export default function SideNav({
 }) {
   const path = usePathname();
   useEffect(() => {
-    socket.connect();
     socket.emit("join", myID);
     socket.on("update", (_) => {
       revalidateURL(path);
