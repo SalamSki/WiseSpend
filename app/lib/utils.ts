@@ -15,6 +15,7 @@ if (process.env.NODE_ENV !== "production")
   globalForOtpAsciiChars.otpAsciiChars = otpAsciiChars;
 
 export const startDate = new Date("2000-01-01");
+export const endDate = new Date(8640000000000000);
 export const dateToString = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
     2,

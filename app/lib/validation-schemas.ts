@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { startDate } from "./utils";
+import { endDate, startDate } from "./utils";
 
 export const emailSchema = z.string().email();
 
@@ -8,7 +8,7 @@ export const dateSchema = z
   .min(startDate, {
     message: "Purchases made only after January 1, 2000, are permitted.",
   })
-  .max(new Date(), {
+  .max(endDate, {
     message: "Purchases made only on or before today are permitted.",
   });
 
