@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { Input } from "./input";
 import {
   dateToString,
+  endDate,
   inital_res,
   montOrderShort,
   monthOrder,
+  startDate,
 } from "../lib/utils";
 import { z } from "zod";
 import {
@@ -757,8 +759,8 @@ export default function BudgetView({
           />
 
           <Input
-            min={"2000-01-01"}
-            max={dateToString(new Date())}
+            min={dateToString(startDate)}
+            max={dateToString(endDate)}
             className="pr-0"
             autoComplete="off"
             label="Date"
