@@ -701,7 +701,16 @@ export default function BudgetView({
                     store === s ? "text-primary-500" : ""
                   }`}
                   key={s}
-                  onClick={() => setStore(s)}
+                  onClick={() => {
+                    if (
+                      s.length > 0 &&
+                      budgetSchema.safeParse(s.trim()).success
+                    ) {
+                      if (purcahseErrors.store)
+                        purcahseErrors.store = undefined;
+                      setStore(s.trim());
+                    }
+                  }}
                 >
                   {s}
                 </p>
@@ -721,9 +730,10 @@ export default function BudgetView({
             value={store}
             onChange={(e) => {
               const input = e.target.value;
+              console.log(purcahseErrors.store, input.trim());
               if (
                 purcahseErrors.store &&
-                userSchema.safeParse(input.trim()).success
+                budgetSchema.safeParse(input.trim()).success
               )
                 purcahseErrors.store = undefined;
               setStore(input);
