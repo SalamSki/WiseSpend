@@ -8,9 +8,7 @@ export const dateSchema = z
   .min(startDate, {
     message: "Purchases made only after January 1, 2000, are permitted.",
   })
-  .max(endDate, {
-    message: "Purchases made only on or before today are permitted.",
-  });
+  .max(endDate);
 
 export const amountSchema = z
   .number({ invalid_type_error: "Please enter a number." })
