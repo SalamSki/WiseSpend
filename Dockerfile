@@ -3,8 +3,8 @@ FROM node:18-alpine AS base
 # Install dependencies only when needed
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache openssl
 WORKDIR /app
-
 # Install dependencies based on the preferred package manager
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
 RUN \
@@ -17,6 +17,7 @@ RUN \
 
 # Rebuild the source code only when needed
 FROM base AS builder
+RUN apk add --no-cache openssl
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -28,6 +29,7 @@ RUN yarn prisma db push && yarn build
 
 # Production image, copy all the files and run next
 FROM base AS runner
+RUN apk add --no-cache openssl
 WORKDIR /app
 
 ENV NODE_ENV production
